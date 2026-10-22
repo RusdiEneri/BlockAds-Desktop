@@ -40,12 +40,12 @@ jobs:
         working-directory: frontend
         run: npm install
 
-      - name: Run Go Tests
-        run: go test -v -count=1 ./...
-
       - name: Build Frontend
         working-directory: frontend
         run: npm run build
+
+      - name: Run Go Tests
+        run: go test -v -count=1 ./...
 
       - name: Install Wails CLI
         run: go install github.com/wailsapp/wails/v2/cmd/wails@v2.17.0
