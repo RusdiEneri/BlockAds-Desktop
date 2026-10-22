@@ -1,0 +1,20 @@
+{
+  "$schema": "https://wails.io/schemas/config.v2.json",
+  "name": "BlockAds-Desktop",
+  "outputfilename": "BlockAds-Desktop",
+  "frontend:install": "npm install",
+  "frontend:build": "npm run build",
+  "frontend:dev:watcher": "npm run dev",
+  "frontend:dev:serverUrl": "auto",
+  "author": {
+    "name": "RusdiEneri",
+    "email": "nuruddinrusydiilham@gmail.com"
+  },
+  "info": {
+    "companyName": "BlockAds",
+    "productName": "BlockAds Desktop",
+    "productVersion": "0.4.0",
+    "copyright": "Copyright (c) 2026 Nuruddin Rusydi Ilham",
+    "comments": "Lightweight Windows DNS Ad-Blocker & Privacy Shield"
+  }
+}

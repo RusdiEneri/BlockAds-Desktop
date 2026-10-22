@@ -1,0 +1,5 @@
+# BlockAds Desktop Portable Marker File
+# Presence of this file in the same directory as BlockAds-Desktop.exe forces
+# the application to run in Portable Mode, storing all SQLite databases,
+# filter snapshots, and configuration in a local "data" directory.
+portable=true

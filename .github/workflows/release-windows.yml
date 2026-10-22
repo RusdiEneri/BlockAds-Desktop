@@ -1,0 +1,130 @@
+name: Release Windows
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      tag_name:
+        description: 'Tag name to simulate or build (e.g. v0.4.0)'
+        required: false
+        default: ''
+
+permissions:
+  contents: write
+
+jobs:
+  publish-release:
+    name: Build & Publish Windows Release
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: 'go.mod'
+          check-latest: true
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install Frontend Dependencies
+        working-directory: frontend
+        run: npm ci
+
+      - name: Run Go Tests
+        run: go test -v -count=1 ./...
+
+      - name: Build Frontend
+        working-directory: frontend
+        run: npm run build
+
+      - name: Install Wails CLI
+        run: go install github.com/wailsapp/wails/v2/cmd/wails@v2.17.0
+
+      - name: Determine Version Tag
+        id: version
+        shell: bash
+        run: |
+          if [ -n "${{ github.event.inputs.tag_name }}" ]; then
+            TAG="${{ github.event.inputs.tag_name }}"
+          else
+            TAG="${GITHUB_REF#refs/tags/}"
+          fi
+          echo "tag=$TAG" >> $GITHUB_OUTPUT
+          echo "Using version tag: $TAG"
+
+      - name: Build Windows Executable
+        run: wails build
+
+      - name: Build NSIS Setup Installer
+        run: wails build -nsis
+
+      - name: Prepare Release Assets
+        shell: bash
+        run: |
+          set -e
+          VERSION="${{ steps.version.outputs.tag }}"
+          mkdir -p release-dist
+          
+          # 1. Standalone Executable
+          if [ ! -f "build/bin/BlockAds-Desktop.exe" ]; then
+            echo "Error: build/bin/BlockAds-Desktop.exe not found!"
+            exit 1
+          fi
+          cp build/bin/BlockAds-Desktop.exe "release-dist/BlockAds-Desktop-${VERSION}-windows-amd64.exe"
+          
+          # 2. NSIS Installer
+          if [ -f "build/bin/BlockAds-Desktop-amd64-setup.exe" ]; then
+            cp "build/bin/BlockAds-Desktop-amd64-setup.exe" "release-dist/BlockAds-Desktop-${VERSION}-windows-amd64-setup.exe"
+          elif [ -f "build/bin/BlockAds-Desktop-amd64-installer.exe" ]; then
+            cp "build/bin/BlockAds-Desktop-amd64-installer.exe" "release-dist/BlockAds-Desktop-${VERSION}-windows-amd64-setup.exe"
+          else
+            SETUP_FILE=$(ls build/bin/*installer.exe build/bin/*setup.exe 2>/dev/null | head -n 1)
+            if [ -n "$SETUP_FILE" ]; then
+              cp "$SETUP_FILE" "release-dist/BlockAds-Desktop-${VERSION}-windows-amd64-setup.exe"
+            else
+              echo "Error: NSIS installer binary not found in build/bin!"
+              exit 1
+            fi
+          fi
+          
+          # 3. Portable Bundle ZIP
+          mkdir -p portable-staging/data
+          cp build/bin/BlockAds-Desktop.exe portable-staging/
+          cp build/windows/portable/portable.marker portable-staging/
+          cp build/windows/portable/README-PORTABLE.txt portable-staging/
+          
+          cd portable-staging
+          7z a "../release-dist/BlockAds-Desktop-${VERSION}-windows-amd64-portable.zip" *
+          cd ..
+          
+          # 4. Generate SHA256SUMS.txt manifest
+          cd release-dist
+          sha256sum BlockAds-Desktop* > SHA256SUMS.txt
+          echo "Generated Checksum Manifest:"
+          cat SHA256SUMS.txt
+          cd ..
+
+      - name: Create GitHub Release and Upload Assets
+        uses: softprops/action-gh-release@v2
+        if: startsWith(github.ref, 'refs/tags/v')
+        with:
+          name: "BlockAds Desktop ${{ steps.version.outputs.tag }}"
+          draft: false
+          prerelease: false
+          generate_release_notes: true
+          files: |
+            release-dist/*
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

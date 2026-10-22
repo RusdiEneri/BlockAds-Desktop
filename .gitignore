@@ -1,0 +1,33 @@
+# Binaries and build artifacts
+build/bin/
+*.exe
+*.dll
+*.so
+*.dylib
+release-dist/
+portable-staging/
+
+# Frontend dependencies and build output
+frontend/node_modules/
+frontend/dist/
+.npm/
+
+# Local application databases, WAL, and logs
+*.db
+*.db-wal
+*.db-shm
+*.db-journal
+data/
+*.log
+
+# Windows and OS-specific files
+Thumbs.db
+Desktop.ini
+.DS_Store
+
+# IDE and Editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
