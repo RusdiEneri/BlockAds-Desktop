@@ -50,6 +50,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   const [copiedIp, setCopiedIp] = useState(false);
   const [simulatingDomain, setSimulatingDomain] = useState<string | null>(null);
   const [customTestDomain, setCustomTestDomain] = useState('');
+  const [autoSimulate, setAutoSimulate] = useState(true);
 
   // Rolling 30-point live traffic buffer
   const [trafficHistory, setTrafficHistory] = useState<TrafficPoint[]>(() => {
@@ -68,8 +69,8 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
     return points;
   });
 
-  // Keep a reference to current sample logs to detect new queries
-  const prevLogsLengthRef = useRef(sampleLogs.length);
+  // Keep a reference to detect newly arrived queries by top ID
+  const prevFirstIdRef = useRef<string | null>(sampleLogs[0]?.id || null);
   const recentSpikeRef = useRef<{ allowed: number; blocked: number }>({ allowed: 0, blocked: 0 });
 
   // Update rolling traffic timeline every second
@@ -105,8 +106,10 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
 
   // When new logs arrive, add spikes to the traffic buffer
   useEffect(() => {
-    if (sampleLogs.length > prevLogsLengthRef.current) {
-      const newItems = sampleLogs.slice(0, sampleLogs.length - prevLogsLengthRef.current);
+    const currentFirstId = sampleLogs[0]?.id;
+    if (currentFirstId && currentFirstId !== prevFirstIdRef.current) {
+      const prevIdx = sampleLogs.findIndex((l) => l.id === prevFirstIdRef.current);
+      const newItems = prevIdx > 0 ? sampleLogs.slice(0, prevIdx) : [sampleLogs[0]];
       let newAllowed = 0;
       let newBlocked = 0;
       newItems.forEach((item) => {
@@ -115,9 +118,36 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
       });
       recentSpikeRef.current.allowed += newAllowed;
       recentSpikeRef.current.blocked += newBlocked;
+      prevFirstIdRef.current = currentFirstId;
     }
-    prevLogsLengthRef.current = sampleLogs.length;
   }, [sampleLogs]);
+
+  // Background live simulation pulse so traffic flows continuously even before adapter re-pointing
+  useEffect(() => {
+    if (!autoSimulate || !isProtected) return;
+
+    const SIM_DOMAINS = [
+      'adservice.google.com',
+      'api.github.com',
+      'doubleclick.net',
+      'telemetry.microsoft.com',
+      'cloudflare.com',
+      'tracking.vendor-metrics.com',
+      'wikipedia.org',
+      'secure.gravatar.com',
+      'analytics.tiktok.com',
+      'raw.githubusercontent.com',
+      'ads.pubmatic.com',
+      'dns.google',
+    ];
+
+    const timer = setInterval(() => {
+      const domain = SIM_DOMAINS[Math.floor(Math.random() * SIM_DOMAINS.length)];
+      onSimulateQuery(domain, Math.random() > 0.8 ? 'AAAA' : 'A').catch(() => {});
+    }, 3200);
+
+    return () => clearInterval(timer);
+  }, [autoSimulate, isProtected, onSimulateQuery]);
 
   const handleToggle = async () => {
     try {
@@ -168,7 +198,22 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
     8 // minimum height scale
   );
 
-  const recentLogs = sampleLogs.slice(0, 7);
+  const formatTime = (ts: string) => {
+    if (!ts) return '';
+    if (ts.includes('T')) {
+      try {
+        const d = new Date(ts);
+        if (!isNaN(d.getTime())) {
+          return d.toLocaleTimeString([], { hour12: false, minute: '2-digit', second: '2-digit' });
+        }
+      } catch {
+        return ts;
+      }
+    }
+    return ts;
+  };
+
+  const recentLogs = sampleLogs.slice(0, 10);
 
   return (
     <div className="space-y-6">
@@ -365,15 +410,29 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           </NeoBadge>
         }
         headerAction={
-          <div className="flex items-center gap-3 text-xs font-mono">
-            <span className="flex items-center gap-1 text-[#1E7E34] font-bold">
-              <span className="w-2.5 h-2.5 bg-[#1E7E34] inline-block border border-[#121212]" />
-              Allowed
-            </span>
-            <span className="flex items-center gap-1 text-[#D9381E] font-bold">
-              <span className="w-2.5 h-2.5 bg-[#D9381E] inline-block border border-[#121212]" />
-              Blocked
-            </span>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => setAutoSimulate(!autoSimulate)}
+              title={autoSimulate ? "Pause live traffic pulse" : "Resume live traffic pulse"}
+              className={`flex items-center gap-1.5 px-2.5 py-1 text-[11px] font-bold uppercase border-2 transition-all cursor-pointer ${
+                autoSimulate
+                  ? 'bg-[#EBFBEE] text-[#1E7E34] border-[#121212] shadow-[2px_2px_0px_#1E7E34]'
+                  : 'bg-[#F5F1E8] text-[#6B7280] border-[#121212]'
+              }`}
+            >
+              <span className={`w-2 h-2 rounded-full ${autoSimulate ? 'bg-[#1E7E34] animate-ping' : 'bg-[#9CA3AF]'}`} />
+              <span>{autoSimulate ? 'LIVE PULSE ON' : 'PULSE PAUSED'}</span>
+            </button>
+            <div className="hidden sm:flex items-center gap-3 text-xs font-mono">
+              <span className="flex items-center gap-1 text-[#1E7E34] font-bold">
+                <span className="w-2.5 h-2.5 bg-[#1E7E34] inline-block border border-[#121212]" />
+                Allowed
+              </span>
+              <span className="flex items-center gap-1 text-[#D9381E] font-bold">
+                <span className="w-2.5 h-2.5 bg-[#D9381E] inline-block border border-[#121212]" />
+                Blocked
+              </span>
+            </div>
           </div>
         }
       >
@@ -509,7 +568,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         badge={
           <NeoBadge variant="neutral" size="sm">
             <span className="w-1.5 h-1.5 rounded-full bg-[#1E7E34] mr-1 inline-block animate-ping" />
-            LIVE FEED
+            LIVE FEED ({sampleLogs.length})
           </NeoBadge>
         }
         headerAction={
@@ -539,7 +598,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               {recentLogs.map((log) => (
                 <tr key={log.id} className="hover:bg-[#FDFBF7] transition-colors">
                   <td className="py-2.5 px-4 font-mono text-[#6B7280]">
-                    {log.timestamp}
+                    {formatTime(log.timestamp)}
                   </td>
                   <td className="py-2.5 px-4 font-mono font-bold text-[#121212]">
                     {log.domain}

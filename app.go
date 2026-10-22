@@ -156,7 +156,18 @@ func NewAppWithStorage(store *storage.Storage) *App {
 				})
 			}
 			if app.ctx != nil {
-				wailsRuntime.EventsEmit(app.ctx, "query:event", d)
+				entry := models.QueryLogEntry{
+					ID:                fmt.Sprintf("evt-%d", time.Now().UnixNano()),
+					Timestamp:         d.Timestamp.UTC().Format(time.RFC3339),
+					Domain:            d.Domain,
+					ClientIP:          d.ClientIP,
+					QueryType:         d.QueryType,
+					Status:            string(d.Decision),
+					UpstreamLatencyMs: d.UpstreamLatencyMs,
+					FilterRule:        d.MatchedRule,
+					Reason:            d.Reason,
+				}
+				wailsRuntime.EventsEmit(app.ctx, "query:event", entry)
 			}
 		},
 		SinkholeTTL:    60,

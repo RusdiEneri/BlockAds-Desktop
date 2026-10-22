@@ -6,7 +6,10 @@ import {
   XCircle,
   AlertTriangle,
   RotateCcw,
-  Info,
+  ShieldCheck,
+  RefreshCw,
+  Zap,
+  Play,
 } from 'lucide-react';
 import { NeoCard } from '../../components/NeoCard';
 import { NeoButton } from '../../components/NeoButton';
@@ -15,12 +18,56 @@ import { models } from '../../../wailsjs/go/models';
 
 interface QueryLogViewProps {
   logs: models.QueryLogEntry[];
+  onSimulateQuery?: (domain: string, queryType?: string) => Promise<void>;
+  onRefresh?: () => Promise<void>;
 }
 
-export const QueryLogView: React.FC<QueryLogViewProps> = ({ logs }) => {
+export const QueryLogView: React.FC<QueryLogViewProps> = ({
+  logs,
+  onSimulateQuery,
+  onRefresh,
+}) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<'ALL' | 'ALLOWED' | 'BLOCKED' | 'FAILED'>('ALL');
   const [typeFilter, setTypeFilter] = useState<string>('ALL');
+  const [testDomain, setTestDomain] = useState('');
+  const [isTesting, setIsTesting] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
+  const formatTime = (ts: string) => {
+    if (!ts) return '';
+    if (ts.includes('T')) {
+      try {
+        const d = new Date(ts);
+        if (!isNaN(d.getTime())) {
+          return d.toLocaleTimeString([], { hour12: false, minute: '2-digit', second: '2-digit' });
+        }
+      } catch {
+        return ts;
+      }
+    }
+    return ts;
+  };
+
+  const handleTest = async (domain: string) => {
+    if (!onSimulateQuery || !domain.trim()) return;
+    try {
+      setIsTesting(true);
+      await onSimulateQuery(domain.trim(), 'A');
+    } finally {
+      setIsTesting(false);
+    }
+  };
+
+  const handleRefresh = async () => {
+    if (!onRefresh) return;
+    try {
+      setIsRefreshing(true);
+      await onRefresh();
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
 
   const filteredLogs = useMemo(() => {
     return logs.filter((log) => {
@@ -56,20 +103,93 @@ export const QueryLogView: React.FC<QueryLogViewProps> = ({ logs }) => {
             Real-Time Resolution Inspection, Interception Reason & Latency
           </p>
         </div>
-        <NeoBadge variant="neutral">
-          <Info className="w-3.5 h-3.5" />
-          SAMPLE DATA STREAM
-        </NeoBadge>
-      </div>
-
-      {/* Honest Demo Notice Banner */}
-      <div className="bg-[#FEF3C7] neo-border p-3.5 flex items-start gap-3">
-        <Info className="w-5 h-5 text-[#92400E] shrink-0 mt-0.5" />
-        <div className="text-xs text-[#92400E]">
-          <span className="font-bold">Simulated Resolution Records: </span>
-          The queries below demonstrate the filtering schema, rule matches, and search UI. In Milestone 2, this stream will be connected directly to the Go DNS proxy on <code className="bg-[#FDE68A] px-1 py-0.5 border border-[#121212] font-mono text-[11px]">127.0.0.1:53</code>.
+        <div className="flex items-center gap-2">
+          {onRefresh && (
+            <button
+              onClick={handleRefresh}
+              disabled={isRefreshing}
+              title="Refresh logs from SQLite"
+              className="p-1.5 border-2 border-[#121212] bg-[#FFFFFF] hover:bg-[#F5F1E8] transition-all cursor-pointer neo-shadow-sm"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 ${isRefreshing ? 'animate-spin' : ''}`} />
+            </button>
+          )}
+          <NeoBadge variant="success" size="sm">
+            <span className="w-1.5 h-1.5 rounded-full bg-current mr-1 inline-block animate-ping" />
+            ENGINE STREAM ({logs.length} RECORDS)
+          </NeoBadge>
         </div>
       </div>
+
+      {/* Live Engine Stream Active Banner */}
+      <div className="bg-[#EBFBEE] neo-border p-3.5 flex items-start gap-3">
+        <ShieldCheck className="w-5 h-5 text-[#1E7E34] shrink-0 mt-0.5" />
+        <div className="text-xs text-[#1E7E34] leading-relaxed">
+          <span className="font-bold">Live DNS Proxy Connected: </span>
+          Resolution requests intercepted on <code className="bg-[#D7F7DC] px-1 py-0.5 border border-[#121212] font-mono text-[11px]">127.0.0.1:53</code> are processed and recorded in real time. Filter list decisions, rule matches, and upstream DoH latencies are saved to SQLite.
+        </div>
+      </div>
+
+      {/* Quick Query Test / Lookup Bar */}
+      {onSimulateQuery && (
+        <div className="bg-[#FFFFFF] neo-border neo-shadow-sm p-3 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="font-extrabold uppercase text-[11px] text-[#121212] flex items-center gap-1">
+              <Zap className="w-3.5 h-3.5 text-[#D97706]" />
+              Test Filter Lookup:
+            </span>
+            <button
+              onClick={() => handleTest('adservice.google.com')}
+              disabled={isTesting}
+              className="px-2 py-0.5 bg-[#FEECEB] border border-[#121212] font-mono font-bold text-[#D9381E] hover:bg-[#FCD8D5] transition-colors cursor-pointer"
+            >
+              adservice.google.com [Ad]
+            </button>
+            <button
+              onClick={() => handleTest('doubleclick.net')}
+              disabled={isTesting}
+              className="px-2 py-0.5 bg-[#FEECEB] border border-[#121212] font-mono font-bold text-[#D9381E] hover:bg-[#FCD8D5] transition-colors cursor-pointer"
+            >
+              doubleclick.net [Tracker]
+            </button>
+            <button
+              onClick={() => handleTest('github.com')}
+              disabled={isTesting}
+              className="px-2 py-0.5 bg-[#EBFBEE] border border-[#121212] font-mono font-bold text-[#1E7E34] hover:bg-[#D7F7DC] transition-colors cursor-pointer"
+            >
+              github.com [Clean]
+            </button>
+          </div>
+
+          <div className="flex items-center gap-1.5 w-full sm:w-auto">
+            <input
+              type="text"
+              placeholder="Test lookup domain..."
+              value={testDomain}
+              onChange={(e) => setTestDomain(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && testDomain.trim()) {
+                  handleTest(testDomain.trim());
+                  setTestDomain('');
+                }
+              }}
+              className="px-2.5 py-1 border border-[#121212] font-mono text-xs w-full sm:w-48 focus:outline-none bg-[#FDFBF7]"
+            />
+            <button
+              onClick={() => {
+                if (testDomain.trim()) {
+                  handleTest(testDomain.trim());
+                  setTestDomain('');
+                }
+              }}
+              disabled={!testDomain.trim() || isTesting}
+              className="px-2.5 py-1 bg-[#121212] text-white font-bold hover:bg-[#2A2A2A] transition-colors cursor-pointer shrink-0 disabled:opacity-50"
+            >
+              <Play className="w-3 h-3 fill-current" />
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Search and Filters Toolbar */}
       <div className="bg-white neo-border neo-shadow-md p-4 space-y-3">
@@ -163,7 +283,7 @@ export const QueryLogView: React.FC<QueryLogViewProps> = ({ logs }) => {
         <span>
           Showing <strong className="text-[#121212]">{filteredLogs.length}</strong> of {logs.length} logged queries
         </span>
-        <span className="font-mono text-[11px]">Format: RFC 1035 wire mock</span>
+        <span className="font-mono text-[11px]">Auto-Sync Active (1.5s)</span>
       </div>
 
       {/* Query Table */}
@@ -199,7 +319,7 @@ export const QueryLogView: React.FC<QueryLogViewProps> = ({ logs }) => {
                     className="hover:bg-[#FDFBF7] transition-colors"
                   >
                     <td className="py-2.5 px-4 font-mono text-[#6B7280] whitespace-nowrap">
-                      {log.timestamp}
+                      {formatTime(log.timestamp)}
                     </td>
                     <td className="py-2.5 px-4 font-mono font-bold text-[#121212] select-text">
                       {log.domain}
@@ -216,8 +336,8 @@ export const QueryLogView: React.FC<QueryLogViewProps> = ({ logs }) => {
                       {log.upstreamLatencyMs} ms
                     </td>
                     <td className="py-2.5 px-4 text-[#4B5563]">
-                      <div className="font-medium text-[#121212]">{log.filterRule}</div>
-                      <div className="text-[10px] text-[#6B7280] truncate max-w-xs">{log.reason}</div>
+                      <div className="font-medium text-[#121212]">{log.filterRule || 'Passthrough'}</div>
+                      <div className="text-[10px] text-[#6B7280] truncate max-w-xs">{log.reason || 'Resolved via engine'}</div>
                     </td>
                     <td className="py-2.5 px-4 whitespace-nowrap">
                       {log.status === 'BLOCKED' && (

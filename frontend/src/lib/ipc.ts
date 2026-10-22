@@ -343,6 +343,18 @@ export const ipc = {
     return newEntry;
   },
 
+  onQueryEvent: (callback: (entry: models.QueryLogEntry) => void): (() => void) => {
+    if (typeof window !== 'undefined' && (window as any)?.runtime?.EventsOn) {
+      (window as any).runtime.EventsOn('query:event', callback);
+      return () => {
+        if ((window as any)?.runtime?.EventsOff) {
+          (window as any).runtime.EventsOff('query:event');
+        }
+      };
+    }
+    return () => {};
+  },
+
   getSampleQueryLogs: async (): Promise<models.QueryLogEntry[]> => {
     if (isWailsAvailable()) {
       return WailsApp.GetSampleQueryLogs();

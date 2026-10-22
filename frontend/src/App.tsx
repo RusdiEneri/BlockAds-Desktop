@@ -70,6 +70,53 @@ export function App() {
 
   useEffect(() => {
     loadData();
+
+    // 1. Subscribe to real-time query events emitted by Go DNS engine
+    const unsubscribeQuery = ipc.onQueryEvent((entry: any) => {
+      if (!entry) return;
+      const normalizedEntry = new models.QueryLogEntry({
+        id: entry.id || `evt-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+        timestamp: entry.timestamp || new Date().toISOString(),
+        domain: entry.domain || '',
+        clientIp: entry.clientIp || '127.0.0.1',
+        queryType: entry.queryType || 'A',
+        status: (entry.status || entry.decision || 'ALLOWED') as any,
+        upstreamLatencyMs: entry.upstreamLatencyMs ?? 0,
+        filterRule: entry.filterRule || entry.matchedRule || 'Passthrough',
+        reason: entry.reason || 'Resolved via engine',
+      });
+
+      setQueryLogs((prev) => {
+        if (prev.some((e) => e.id === normalizedEntry.id)) {
+          return prev;
+        }
+        return [normalizedEntry, ...prev.slice(0, 99)];
+      });
+    });
+
+    // 2. Periodic sync from SQLite every 1.5s so external queries to 127.0.0.1:53 are synced automatically
+    const syncInterval = setInterval(async () => {
+      try {
+        const freshLogs = await ipc.getSampleQueryLogs();
+        if (freshLogs && freshLogs.length > 0) {
+          setQueryLogs((prev) => {
+            if (prev.length === 0 || freshLogs[0].id !== prev[0]?.id) {
+              const existingIds = new Set(freshLogs.map((l) => l.id));
+              const nonDuplicateOld = prev.filter((p) => !existingIds.has(p.id));
+              return [...freshLogs, ...nonDuplicateOld].slice(0, 100);
+            }
+            return prev;
+          });
+        }
+      } catch {
+        // Ignore background polling error
+      }
+    }, 1500);
+
+    return () => {
+      unsubscribeQuery();
+      clearInterval(syncInterval);
+    };
   }, [loadData]);
 
   // Action Handlers bound to IPC
@@ -85,7 +132,12 @@ export function App() {
   const handleSimulateQuery = async (domain: string, queryType: string = 'A') => {
     try {
       const entry = await ipc.simulateQuery(domain, queryType);
-      setQueryLogs((prev) => [entry, ...prev.slice(0, 49)]);
+      if (entry) {
+        setQueryLogs((prev) => {
+          if (prev.some((e) => e.id === entry.id)) return prev;
+          return [entry, ...prev.slice(0, 99)];
+        });
+      }
     } catch (err) {
       console.error('Failed to simulate test query:', err);
     }
@@ -304,7 +356,11 @@ export function App() {
               )}
 
               {currentTab === 'querylog' && (
-                <QueryLogView logs={queryLogs} />
+                <QueryLogView
+                  logs={queryLogs}
+                  onSimulateQuery={handleSimulateQuery}
+                  onRefresh={loadData}
+                />
               )}
 
               {currentTab === 'filters' && (
