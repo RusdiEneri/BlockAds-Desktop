@@ -1,11 +1,11 @@
 module blockads-desktop
 
-go 1.25.0
+go 1.26.0
 
 require (
 	github.com/miekg/dns v1.1.73
 	github.com/wailsapp/wails/v2 v2.17.0
-	golang.org/x/sys v0.47.0
+	golang.org/x/sys v0.49.0
 	modernc.org/sqlite v1.36.0
 )
 
