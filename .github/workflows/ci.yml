@@ -62,7 +62,7 @@ jobs:
         run: wails build -s
 
       - name: Upload Build Artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: BlockAds-Desktop-windows-amd64-ci
           path: build/bin/BlockAds-Desktop.exe
