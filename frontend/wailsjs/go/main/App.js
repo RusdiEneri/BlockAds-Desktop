@@ -122,6 +122,10 @@ export function SetStartWithWindows(arg1) {
   return window['go']['main']['App']['SetStartWithWindows'](arg1);
 }
 
+export function SimulateQuery(arg1, arg2) {
+  return window['go']['main']['App']['SimulateQuery'](arg1, arg2);
+}
+
 export function Storage() {
   return window['go']['main']['App']['Storage']();
 }
@@ -140,6 +144,10 @@ export function ToggleDNSRewrite(arg1, arg2, arg3) {
 
 export function ToggleFilterList(arg1, arg2) {
   return window['go']['main']['App']['ToggleFilterList'](arg1, arg2);
+}
+
+export function ToggleProtection(arg1) {
+  return window['go']['main']['App']['ToggleProtection'](arg1);
 }
 
 export function ToggleSafeSearch(arg1, arg2) {

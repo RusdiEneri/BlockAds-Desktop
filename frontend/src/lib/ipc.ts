@@ -28,11 +28,11 @@ let fallbackSettings: models.AppSettings = new models.AppSettings({
 });
 
 let fallbackProtectionStatus: models.ProtectionStatus = new models.ProtectionStatus({
-  isActive: false,
-  state: 'INACTIVE_MILESTONE_1',
+  isActive: true,
+  state: 'ACTIVE',
   upstreamUrl: 'https://dns.caliph.dev/dns-query',
-  listenAddr: '127.0.0.1:53 (Standby - Engine in M2)',
-  message: 'DNS Engine foundation active. Local network adapter configuration has NOT been altered.',
+  listenAddr: '127.0.0.1:53',
+  message: 'DNS filtering and ad-blocking protection is ACTIVE.',
 });
 
 let fallbackFilterLists: models.FilterList[] = [
@@ -305,6 +305,42 @@ export const ipc = {
       return WailsApp.GetProtectionStatus();
     }
     return fallbackProtectionStatus;
+  },
+
+  toggleProtection: async (enabled: boolean): Promise<models.ProtectionStatus> => {
+    if (isWailsAvailable()) {
+      return WailsApp.ToggleProtection(enabled);
+    }
+    fallbackProtectionStatus = new models.ProtectionStatus({
+      ...fallbackProtectionStatus,
+      isActive: enabled,
+      state: enabled ? 'ACTIVE' : 'PAUSED',
+      listenAddr: enabled ? '127.0.0.1:53' : '127.0.0.1:53 (Paused)',
+      message: enabled
+        ? 'DNS filtering and ad-blocking protection is ACTIVE.'
+        : 'Protection is PAUSED. Ad-blocking and filter lists are temporarily bypassed.',
+    });
+    return fallbackProtectionStatus;
+  },
+
+  simulateQuery: async (domain: string, queryType: string = 'A'): Promise<models.QueryLogEntry> => {
+    if (isWailsAvailable()) {
+      return WailsApp.SimulateQuery(domain, queryType);
+    }
+    const isAd = domain.includes('ad') || domain.includes('track') || domain.includes('doubleclick') || domain.includes('analytics');
+    const newEntry = new models.QueryLogEntry({
+      id: `sim-${Date.now()}`,
+      timestamp: new Date().toISOString(),
+      domain,
+      clientIp: '127.0.0.1',
+      queryType,
+      status: fallbackProtectionStatus.isActive && isAd ? 'BLOCKED' : 'ALLOWED',
+      upstreamLatencyMs: Math.floor(Math.random() * 25) + 2,
+      filterRule: isAd ? 'StevenBlack Unified / AdAway' : 'Passthrough',
+      reason: isAd ? 'Matched advertising blocklist' : 'Clean domain resolved via DoH',
+    });
+    fallbackQueryLogs = [newEntry, ...fallbackQueryLogs.slice(0, 49)];
+    return newEntry;
   },
 
   getSampleQueryLogs: async (): Promise<models.QueryLogEntry[]> => {

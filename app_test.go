@@ -22,11 +22,46 @@ func TestAppInitialization(t *testing.T) {
 	}
 
 	status := app.GetProtectionStatus()
-	if status.IsActive {
-		t.Error("expected protection to be inactive in Milestone 1")
+	if !status.IsActive {
+		t.Error("expected protection to be active by default")
 	}
-	if status.State != "INACTIVE_MILESTONE_1" {
+	if status.State != "ACTIVE" {
 		t.Errorf("unexpected status state: %s", status.State)
+	}
+
+	// Test Toggle Protection Off
+	pausedStatus, err := app.ToggleProtection(false)
+	if err != nil {
+		t.Fatalf("unexpected error toggling protection off: %v", err)
+	}
+	if pausedStatus.IsActive {
+		t.Error("expected protection to be inactive when toggled off")
+	}
+	if pausedStatus.State != "PAUSED" {
+		t.Errorf("expected PAUSED state, got %s", pausedStatus.State)
+	}
+
+	// Test Toggle Protection On
+	resumedStatus, err := app.ToggleProtection(true)
+	if err != nil {
+		t.Fatalf("unexpected error toggling protection on: %v", err)
+	}
+	if !resumedStatus.IsActive || resumedStatus.State != "ACTIVE" {
+		t.Errorf("expected active protection after resuming, got %+v", resumedStatus)
+	}
+}
+
+func TestAppSimulateQuery(t *testing.T) {
+	app := NewApp()
+	entry, err := app.SimulateQuery("adservice.google.com", "A")
+	if err != nil {
+		t.Fatalf("failed to simulate query: %v", err)
+	}
+	if entry.Domain != "adservice.google.com" {
+		t.Errorf("expected domain adservice.google.com, got %s", entry.Domain)
+	}
+	if entry.Status != "BLOCKED" {
+		t.Errorf("expected adservice.google.com to be blocked, got %s", entry.Status)
 	}
 }
 

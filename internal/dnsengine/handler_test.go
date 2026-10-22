@@ -390,3 +390,50 @@ func TestHandler_AtomicSetMatcherHotReload(t *testing.T) {
 		t.Errorf("expected sinkhole 0.0.0.0, got %s", w2.writtenMsg.Answer[0].(*dns.A).A.String())
 	}
 }
+
+func TestHandlerFilteringToggle(t *testing.T) {
+	fakeRes := dnsengine.NewFakeResolver(func(ctx context.Context, req *dns.Msg) (*dns.Msg, error) {
+		resp := new(dns.Msg)
+		resp.SetReply(req)
+		resp.Rcode = dns.RcodeSuccess
+		resp.Answer = append(resp.Answer, &dns.A{
+			Hdr: dns.RR_Header{Name: req.Question[0].Name, Rrtype: dns.TypeA, Class: dns.ClassINET, Ttl: 300},
+			A:   net.ParseIP("93.184.216.34"),
+		})
+		return resp, nil
+	})
+
+	handler, _ := setupTestEngine(t, fakeRes)
+	if !handler.FilteringEnabled() {
+		t.Error("expected FilteringEnabled() to be true by default")
+	}
+
+	// 1. When enabled, ads.example.com is blocked
+	req := new(dns.Msg)
+	req.SetQuestion("ads.example.com.", dns.TypeA)
+	w1 := newMockResponseWriter("udp", "127.0.0.1:54321")
+	handler.ServeDNS(w1, req)
+
+	if w1.writtenMsg == nil || len(w1.writtenMsg.Answer) != 1 {
+		t.Fatalf("expected blocked sinkhole answer")
+	}
+	if w1.writtenMsg.Answer[0].(*dns.A).A.String() != "0.0.0.0" {
+		t.Errorf("expected sinkhole 0.0.0.0, got %s", w1.writtenMsg.Answer[0].(*dns.A).A.String())
+	}
+
+	// 2. Pause filtering
+	handler.SetFilteringEnabled(false)
+	if handler.FilteringEnabled() {
+		t.Error("expected FilteringEnabled() to be false")
+	}
+
+	w2 := newMockResponseWriter("udp", "127.0.0.1:54321")
+	handler.ServeDNS(w2, req)
+
+	if w2.writtenMsg == nil || len(w2.writtenMsg.Answer) != 1 {
+		t.Fatalf("expected allowed answer when filtering is paused")
+	}
+	if w2.writtenMsg.Answer[0].(*dns.A).A.String() != "93.184.216.34" {
+		t.Errorf("expected 93.184.216.34, got %s", w2.writtenMsg.Answer[0].(*dns.A).A.String())
+	}
+}

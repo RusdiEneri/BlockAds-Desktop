@@ -55,14 +55,15 @@ type HandlerConfig struct {
 
 // Handler handles incoming DNS requests across UDP and TCP.
 type Handler struct {
-	matcher        atomic.Pointer[filters.Matcher]
-	resolver       Resolver
-	queryObserver  QueryObserver
-	sinkholeTTL    uint32
-	cache          *cache.DNSCache
-	failureCache   *cache.FailureCache
-	circuitBreaker *CircuitBreaker
-	rewriter       atomic.Pointer[rewrites.Rewriter]
+	matcher          atomic.Pointer[filters.Matcher]
+	resolver         Resolver
+	queryObserver    QueryObserver
+	sinkholeTTL      uint32
+	cache            *cache.DNSCache
+	failureCache     *cache.FailureCache
+	circuitBreaker   *CircuitBreaker
+	rewriter         atomic.Pointer[rewrites.Rewriter]
+	filteringEnabled atomic.Bool
 }
 
 // NewHandler creates a new Handler with the given config.
@@ -83,6 +84,7 @@ func NewHandler(cfg HandlerConfig) *Handler {
 		failureCache:   cfg.FailureCache,
 		circuitBreaker: cb,
 	}
+	h.filteringEnabled.Store(true)
 	if cfg.Matcher != nil {
 		h.matcher.Store(cfg.Matcher)
 	}
@@ -90,6 +92,16 @@ func NewHandler(cfg HandlerConfig) *Handler {
 		h.rewriter.Store(cfg.Rewriter)
 	}
 	return h
+}
+
+// SetFilteringEnabled dynamically enables or pauses domain filtering (ad-blocking).
+func (h *Handler) SetFilteringEnabled(enabled bool) {
+	h.filteringEnabled.Store(enabled)
+}
+
+// FilteringEnabled reports whether domain filtering is currently active.
+func (h *Handler) FilteringEnabled() bool {
+	return h.filteringEnabled.Load()
 }
 
 // Matcher returns the currently active domain filtering matcher.
@@ -100,6 +112,16 @@ func (h *Handler) Matcher() *filters.Matcher {
 // SetMatcher atomically installs a new active domain filtering matcher.
 func (h *Handler) SetMatcher(m *filters.Matcher) {
 	h.matcher.Store(m)
+}
+
+// SetResolver dynamically updates the active upstream resolver.
+func (h *Handler) SetResolver(r Resolver) {
+	h.resolver = r
+}
+
+// Resolver returns the configured upstream resolver.
+func (h *Handler) Resolver() Resolver {
+	return h.resolver
 }
 
 // Cache returns the configured DNSCache instance, if any.
@@ -237,10 +259,12 @@ func (h *Handler) ServeDNS(w dns.ResponseWriter, r *dns.Msg) {
 		}
 	}
 
-	// Match domain against active filter matcher
+	// Match domain against active filter matcher (only if filtering is enabled)
 	matchRes := filters.MatchResult{Action: filters.ActionPass}
-	if m := h.matcher.Load(); m != nil {
-		matchRes = m.Match(canonicalDomain)
+	if h.FilteringEnabled() {
+		if m := h.matcher.Load(); m != nil {
+			matchRes = m.Match(canonicalDomain)
+		}
 	}
 
 	if matchRes.Action == filters.ActionBlock {

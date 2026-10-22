@@ -117,7 +117,7 @@ export function setupBrowserMockIfNeeded() {
     systemDnsIntegrated: false,
   };
 
-  const sampleLogs: models.QueryLogEntry[] = [
+  let sampleLogs: models.QueryLogEntry[] = [
     {
       id: 'log-101',
       timestamp: '21:45:10',
@@ -220,12 +220,37 @@ export function setupBrowserMockIfNeeded() {
           webView2Version: '155.0.4283.62',
         }),
         GetProtectionStatus: async () => ({
-          isActive: false,
-          state: 'INACTIVE_MILESTONE_1',
+          isActive: true,
+          state: 'ACTIVE',
           upstreamUrl: settings.upstreamDohUrl,
-          listenAddr: '127.0.0.1:53 (Standby - Engine in M2)',
-          message: 'DNS Engine foundation active. Local network adapter configuration has NOT been altered.',
+          listenAddr: '127.0.0.1:53',
+          message: 'DNS filtering and ad-blocking protection is ACTIVE.',
         }),
+        ToggleProtection: async (enabled: boolean) => ({
+          isActive: enabled,
+          state: enabled ? 'ACTIVE' : 'PAUSED',
+          upstreamUrl: settings.upstreamDohUrl,
+          listenAddr: enabled ? '127.0.0.1:53' : '127.0.0.1:53 (Paused)',
+          message: enabled
+            ? 'DNS filtering and ad-blocking protection is ACTIVE.'
+            : 'Protection is PAUSED. Ad-blocking and filter lists are temporarily bypassed.',
+        }),
+        SimulateQuery: async (domain: string, queryType: string = 'A') => {
+          const isAd = domain.includes('ad') || domain.includes('track') || domain.includes('doubleclick');
+          const entry = {
+            id: `sim-${Date.now()}`,
+            timestamp: new Date().toISOString(),
+            domain: domain || 'adservice.google.com',
+            clientIp: '127.0.0.1',
+            queryType: queryType || 'A',
+            status: isAd ? 'BLOCKED' : 'ALLOWED',
+            upstreamLatencyMs: Math.floor(Math.random() * 20) + 1,
+            filterRule: isAd ? 'StevenBlack Unified' : 'Passthrough',
+            reason: isAd ? 'Matched advertising blocklist' : 'Forwarded to DoH upstream',
+          };
+          sampleLogs = [entry, ...sampleLogs.slice(0, 49)];
+          return entry;
+        },
         GetSampleQueryLogs: async () => sampleLogs,
         GetFilterLists: async () => filterLists,
         ToggleFilterList: async (id: string, enabled: boolean) => {

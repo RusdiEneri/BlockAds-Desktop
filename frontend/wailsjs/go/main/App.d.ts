@@ -67,6 +67,8 @@ export function SetMatcher(arg1:filters.Matcher):Promise<void>;
 
 export function SetStartWithWindows(arg1:boolean):Promise<models.StartupStatus>;
 
+export function SimulateQuery(arg1:string,arg2:string):Promise<models.QueryLogEntry>;
+
 export function Storage():Promise<storage.Storage>;
 
 export function SubscribeCatalogFilter(arg1:string):Promise<models.FilterList>;
@@ -76,6 +78,8 @@ export function ToggleCustomRule(arg1:string,arg2:boolean):Promise<void>;
 export function ToggleDNSRewrite(arg1:string,arg2:string,arg3:boolean):Promise<void>;
 
 export function ToggleFilterList(arg1:string,arg2:boolean):Promise<Array<models.FilterList>>;
+
+export function ToggleProtection(arg1:boolean):Promise<models.ProtectionStatus>;
 
 export function ToggleSafeSearch(arg1:string,arg2:boolean):Promise<void>;
 

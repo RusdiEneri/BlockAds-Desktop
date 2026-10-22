@@ -17,7 +17,9 @@ import (
 	"time"
 
 	"github.com/miekg/dns"
+	wailsRuntime "github.com/wailsapp/wails/v2/pkg/runtime"
 
+	"blockads-desktop/internal/cache"
 	"blockads-desktop/internal/dnsengine"
 	"blockads-desktop/internal/filtermanager"
 	"blockads-desktop/internal/filters"
@@ -26,22 +28,25 @@ import (
 	"blockads-desktop/internal/safesearch"
 	"blockads-desktop/internal/startup"
 	"blockads-desktop/internal/storage"
+	"blockads-desktop/internal/upstream"
 )
 
 // App manages desktop UI state and IPC bindings for Wails.
 type App struct {
-	ctx        context.Context
-	mu         sync.RWMutex
-	storage    *storage.Storage
-	logger     *storage.AsyncLogger
-	rewriter   *rewrites.Rewriter
-	matcher    *filters.Matcher
-	updater    *filtermanager.FilterUpdater
-	scheduler  *filtermanager.Scheduler
-	dnsHandler *dnsengine.Handler
-	startupMgr startup.Manager
-	dbPath     string
-	isPortable bool
+	ctx              context.Context
+	mu               sync.RWMutex
+	storage          *storage.Storage
+	logger           *storage.AsyncLogger
+	rewriter         *rewrites.Rewriter
+	matcher          *filters.Matcher
+	updater          *filtermanager.FilterUpdater
+	scheduler        *filtermanager.Scheduler
+	dnsHandler       *dnsengine.Handler
+	dnsServer        *dnsengine.Server
+	protectionActive bool
+	startupMgr       startup.Manager
+	dbPath           string
+	isPortable       bool
 }
 
 // NewApp creates a new App application struct using the default SQLite database path.
@@ -107,13 +112,60 @@ func NewAppWithStorage(store *storage.Storage) *App {
 		})
 	}
 
-	app := &App{
-		storage:    store,
-		logger:     asyncLogger,
-		rewriter:   rewriter,
-		matcher:    matcher,
-		startupMgr: startup.DefaultManager(),
+	upstreamURL := "https://dns.caliph.dev/dns-query"
+	if store != nil {
+		if cfg, err := store.GetSettings(ctx); err == nil && cfg.UpstreamDoHURL != "" {
+			upstreamURL = cfg.UpstreamDoHURL
+		}
 	}
+	resolver, _ := upstream.NewDoHResolver(upstream.Config{
+		EndpointURL: upstreamURL,
+		Timeout:     5 * time.Second,
+	})
+
+	dnsCache := cache.NewDNSCache(cache.Config{
+		MaxEntries: 10000,
+	})
+	failCache := cache.NewFailureCache(cache.DefaultFailureTTL, cache.DefaultFailureMaxEntries, cache.RealClock{})
+
+	app := &App{
+		storage:          store,
+		logger:           asyncLogger,
+		rewriter:         rewriter,
+		matcher:          matcher,
+		startupMgr:       startup.DefaultManager(),
+		protectionActive: true,
+	}
+
+	dnsHandler := dnsengine.NewHandler(dnsengine.HandlerConfig{
+		Matcher:  matcher,
+		Resolver: resolver,
+		QueryObserver: func(d dnsengine.QueryDecision) {
+			if app.logger != nil {
+				app.logger.Enqueue(storage.QueryEvent{
+					Timestamp:         d.Timestamp,
+					Domain:            d.Domain,
+					ClientIP:          d.ClientIP,
+					QueryType:         d.QueryType,
+					Status:            string(d.Decision),
+					UpstreamLatencyMs: d.UpstreamLatencyMs,
+					FilterRule:        d.MatchedRule,
+					Reason:            d.Reason,
+					Protocol:          d.Protocol,
+					Rcode:             d.Rcode,
+				})
+			}
+			if app.ctx != nil {
+				wailsRuntime.EventsEmit(app.ctx, "query:event", d)
+			}
+		},
+		SinkholeTTL:    60,
+		Cache:          dnsCache,
+		FailureCache:   failCache,
+		CircuitBreaker: dnsengine.NewCircuitBreaker(dnsengine.CircuitBreakerConfig{}),
+		Rewriter:       rewriter,
+	})
+	app.dnsHandler = dnsHandler
 
 	if store != nil {
 		dl := filtermanager.NewDownloader(filtermanager.DownloaderConfig{})
@@ -130,11 +182,34 @@ func NewAppWithStorage(store *storage.Storage) *App {
 // so we can call runtime methods.
 func (a *App) startup(ctx context.Context) {
 	a.ctx = ctx
-	a.mu.RLock()
+	a.mu.Lock()
 	scheduler := a.scheduler
-	a.mu.RUnlock()
+	dnsHandler := a.dnsHandler
+	a.mu.Unlock()
+
 	if scheduler != nil {
 		_ = scheduler.Start(ctx)
+	}
+
+	if dnsHandler != nil {
+		srv := dnsengine.NewServer(dnsengine.ServerConfig{
+			ListenAddr: "127.0.0.1",
+			Port:       53,
+			Handler:    dnsHandler,
+		})
+		err := srv.Start()
+		if err != nil {
+			// Fallback to non-privileged port 5353 if port 53 is busy or restricted
+			srv = dnsengine.NewServer(dnsengine.ServerConfig{
+				ListenAddr: "127.0.0.1",
+				Port:       5353,
+				Handler:    dnsHandler,
+			})
+			_ = srv.Start()
+		}
+		a.mu.Lock()
+		a.dnsServer = srv
+		a.mu.Unlock()
 	}
 }
 
@@ -147,6 +222,11 @@ func (a *App) shutdown(ctx context.Context) {
 func (a *App) Close() error {
 	a.mu.Lock()
 	defer a.mu.Unlock()
+
+	if a.dnsServer != nil {
+		_ = a.dnsServer.Shutdown(context.Background())
+		a.dnsServer = nil
+	}
 
 	var err error
 	if a.scheduler != nil {
@@ -230,16 +310,133 @@ func (a *App) GetAppInfo() models.AppInfo {
 
 // GetProtectionStatus returns current engine operational state.
 func (a *App) GetProtectionStatus() models.ProtectionStatus {
+	a.mu.RLock()
+	defer a.mu.RUnlock()
+
 	settings := a.GetSettings()
+
+	listenAddr := "127.0.0.1:53"
+	if a.dnsServer != nil && a.dnsServer.IsRunning() {
+		listenAddr = a.dnsServer.Addr()
+	} else if a.dnsHandler != nil {
+		listenAddr = "127.0.0.1:53 (Active - Standby)"
+	}
+
+	if a.protectionActive {
+		return models.ProtectionStatus{
+			IsActive:    true,
+			State:       "ACTIVE",
+			UpstreamURL: settings.UpstreamDoHURL,
+			ListenAddr:  listenAddr,
+			Message:     "DNS filtering and ad-blocking protection is ACTIVE.",
+		}
+	}
 
 	return models.ProtectionStatus{
 		IsActive:    false,
-		State:       "INACTIVE_MILESTONE_1",
+		State:       "PAUSED",
 		UpstreamURL: settings.UpstreamDoHURL,
-		ListenAddr:  "127.0.0.1:53 (Standby - Engine active)",
-		Message:     "DNS Engine foundation active. Local network adapter configuration has NOT been altered.",
+		ListenAddr:  listenAddr + " (Paused)",
+		Message:     "Protection is PAUSED. Ad-blocking and filter lists are temporarily bypassed.",
 	}
 }
+
+// ToggleProtection enables or pauses DNS filtering and protection.
+func (a *App) ToggleProtection(enabled bool) (models.ProtectionStatus, error) {
+	a.mu.Lock()
+	a.protectionActive = enabled
+	if a.dnsHandler != nil {
+		a.dnsHandler.SetFilteringEnabled(enabled)
+	}
+	a.mu.Unlock()
+
+	status := a.GetProtectionStatus()
+	if a.ctx != nil {
+		wailsRuntime.EventsEmit(a.ctx, "protection:status", status)
+	}
+	return status, nil
+}
+
+// SimulateQuery processes a test DNS query through the active engine and returns the resulting log entry.
+func (a *App) SimulateQuery(domain string, queryType string) (*models.QueryLogEntry, error) {
+	a.mu.RLock()
+	handler := a.dnsHandler
+	a.mu.RUnlock()
+
+	if handler == nil {
+		return nil, errors.New("dns handler unavailable")
+	}
+
+	cleanDomain := strings.TrimSpace(domain)
+	if cleanDomain == "" {
+		cleanDomain = "adservice.google.com"
+	}
+	cleanDomain = strings.TrimSuffix(cleanDomain, ".")
+
+	qType := dns.TypeA
+	if strings.ToUpper(strings.TrimSpace(queryType)) == "AAAA" {
+		qType = dns.TypeAAAA
+	}
+
+	req := new(dns.Msg)
+	req.SetQuestion(dns.Fqdn(cleanDomain), qType)
+	req.Id = dns.Id()
+	req.RecursionDesired = true
+
+	rw := &simulateResponseWriter{
+		remoteAddr: &net.UDPAddr{IP: net.ParseIP("127.0.0.1"), Port: 53123},
+	}
+	handler.ServeDNS(rw, req)
+
+	// Fetch the recorded log entry
+	if a.storage != nil {
+		events, _, err := a.storage.GetQueryEvents(context.Background(), storage.QueryFilter{
+			Domain: cleanDomain,
+			Limit:  1,
+		})
+		if err == nil && len(events) > 0 {
+			return &events[0], nil
+		}
+	}
+
+	status := "ALLOWED"
+	reason := "Clean domain forwarded to DoH"
+	rule := "Passthrough"
+	if rw.msg != nil && len(rw.msg.Answer) > 0 {
+		if aRecord, ok := rw.msg.Answer[0].(*dns.A); ok && aRecord.A.String() == "0.0.0.0" {
+			status = "BLOCKED"
+			reason = "Matched advertising blocklist"
+			rule = "BlockAds Filter List"
+		}
+	}
+
+	entry := &models.QueryLogEntry{
+		ID:                fmt.Sprintf("sim-%d", time.Now().UnixNano()),
+		Timestamp:         time.Now().UTC().Format(time.RFC3339),
+		Domain:            cleanDomain,
+		ClientIP:          "127.0.0.1",
+		QueryType:         dns.TypeToString[qType],
+		Status:            status,
+		UpstreamLatencyMs: 2,
+		FilterRule:        rule,
+		Reason:            reason,
+	}
+	return entry, nil
+}
+
+type simulateResponseWriter struct {
+	remoteAddr net.Addr
+	msg        *dns.Msg
+}
+
+func (s *simulateResponseWriter) LocalAddr() net.Addr         { return s.remoteAddr }
+func (s *simulateResponseWriter) RemoteAddr() net.Addr        { return s.remoteAddr }
+func (s *simulateResponseWriter) WriteMsg(m *dns.Msg) error   { s.msg = m; return nil }
+func (s *simulateResponseWriter) Write(b []byte) (int, error) { return len(b), nil }
+func (s *simulateResponseWriter) Close() error                { return nil }
+func (s *simulateResponseWriter) TsigStatus() error           { return nil }
+func (s *simulateResponseWriter) TsigTimersOnly(bool)         {}
+func (s *simulateResponseWriter) Hijack()                     {}
 
 // GetSampleQueryLogs returns recent query log records from persistent SQLite.
 func (a *App) GetSampleQueryLogs() []models.QueryLogEntry {
@@ -746,9 +943,29 @@ func (a *App) UpdateUpstreamDoH(url string) error {
 		return errors.New("storage unavailable")
 	}
 
+	cleanURL := strings.TrimSpace(url)
 	current := a.GetSettings()
-	current.UpstreamDoHURL = strings.TrimSpace(url)
-	return a.storage.UpdateSettings(context.Background(), current)
+	current.UpstreamDoHURL = cleanURL
+	if err := a.storage.UpdateSettings(context.Background(), current); err != nil {
+		return err
+	}
+
+	a.mu.Lock()
+	handler := a.dnsHandler
+	a.mu.Unlock()
+
+	if handler != nil {
+		newRes, err := upstream.NewDoHResolver(upstream.Config{
+			EndpointURL: cleanURL,
+			Timeout:     5 * time.Second,
+		})
+		if err == nil {
+			handler.SetResolver(newRes)
+			handler.FlushCache()
+		}
+	}
+
+	return nil
 }
 
 // GetDNSRewrites returns all persistent DNS rewrites.

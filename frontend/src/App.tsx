@@ -73,6 +73,24 @@ export function App() {
   }, [loadData]);
 
   // Action Handlers bound to IPC
+  const handleToggleProtection = async (enabled: boolean) => {
+    try {
+      const status = await ipc.toggleProtection(enabled);
+      setProtectionStatus(status);
+    } catch (err) {
+      console.error('Failed to toggle protection:', err);
+    }
+  };
+
+  const handleSimulateQuery = async (domain: string, queryType: string = 'A') => {
+    try {
+      const entry = await ipc.simulateQuery(domain, queryType);
+      setQueryLogs((prev) => [entry, ...prev.slice(0, 49)]);
+    } catch (err) {
+      console.error('Failed to simulate test query:', err);
+    }
+  };
+
   const handleToggleFilter = async (id: string, enabled: boolean) => {
     try {
       const updated = await ipc.toggleFilterList(id, enabled);
@@ -220,6 +238,8 @@ export function App() {
         currentTab={currentTab}
         onSelectTab={setCurrentTab}
         appVersion={appInfo?.version || 'v0.4.0'}
+        isProtected={protectionStatus?.isActive ?? true}
+        onToggleProtection={handleToggleProtection}
       />
 
       {/* Main Content Workspace */}
@@ -237,15 +257,15 @@ export function App() {
           </div>
 
           <div className="flex items-center gap-3">
-            <NeoBadge variant="warning" size="sm">
-              <AlertTriangle className="w-3 h-3" />
-              ENGINE IN STANDBY
+            <NeoBadge variant={protectionStatus?.isActive ?? true ? 'success' : 'warning'} size="sm">
+              <span className="w-1.5 h-1.5 rounded-full bg-current mr-1 inline-block animate-ping" />
+              {protectionStatus?.isActive ?? true ? 'PROTECTION ACTIVE' : 'PROTECTION PAUSED'}
             </NeoBadge>
 
             <button
               onClick={loadData}
               title="Refresh telemetry & status from Go engine"
-              className="p-1.5 border-2 border-[#121212] bg-[#F5F1E8] hover:bg-white transition-all neo-shadow-hover"
+              className="p-1.5 border-2 border-[#121212] bg-[#F5F1E8] hover:bg-white transition-all neo-shadow-hover cursor-pointer"
             >
               <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin' : ''}`} />
             </button>
@@ -265,7 +285,7 @@ export function App() {
               </p>
               <button
                 onClick={loadData}
-                className="px-4 py-2 bg-[#121212] text-[#F5F1E8] font-bold text-xs uppercase border-2 border-[#121212] neo-shadow-hover"
+                className="px-4 py-2 bg-[#121212] text-[#F5F1E8] font-bold text-xs uppercase border-2 border-[#121212] neo-shadow-hover cursor-pointer"
               >
                 Retry Connection
               </button>
@@ -278,6 +298,8 @@ export function App() {
                   sampleLogs={queryLogs}
                   filterLists={filterLists}
                   onNavigate={setCurrentTab}
+                  onToggleProtection={handleToggleProtection}
+                  onSimulateQuery={handleSimulateQuery}
                 />
               )}
 
