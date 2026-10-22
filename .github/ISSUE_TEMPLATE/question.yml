@@ -1,0 +1,30 @@
+name: Question & Support
+description: Ask a question or request assistance with BlockAds Desktop
+labels: ["question"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Before submitting a question, please review our [Documentation](https://github.com/RusdiEneri/BlockAds-Desktop/tree/master/docs) and [README](https://github.com/RusdiEneri/BlockAds-Desktop#readme).
+  - type: textarea
+    id: question
+    attributes:
+      label: Your Question
+      description: What would you like to ask or understand about BlockAds Desktop?
+    validations:
+      required: true
+  - type: textarea
+    id: environment
+    attributes:
+      label: System Environment
+      description: Operating System version, network adapter type, or DNS configuration in use.
+      placeholder: e.g. Windows 11 Pro 23H2, Wi-Fi 6 adapter, Caliph DoH
+    validations:
+      required: false
+  - type: textarea
+    id: context
+    attributes:
+      label: Additional Context
+      description: Any logs, screenshots, or additional details that might help answer your question.
+    validations:
+      required: false

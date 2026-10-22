@@ -1,0 +1,99 @@
+name: Issue & PR Automation
+
+on:
+  issues:
+    types: [opened]
+  pull_request:
+    types: [opened]
+
+permissions:
+  issues: write
+  pull-requests: write
+  contents: read
+
+jobs:
+  triage-issue:
+    name: Triage New Issue
+    if: github.event_name == 'issues'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Auto-label and respond to issue
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const issue = context.payload.issue;
+            const labels = (issue.labels || []).map(l => l.name);
+
+            // Check if needs default triage label
+            const recognized = ['bug', 'enhancement', 'question'];
+            const hasRecognized = labels.some(l => recognized.includes(l));
+            if (!hasRecognized) {
+              await github.rest.issues.addLabels({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: issue.number,
+                labels: ['needs-triage']
+              });
+            }
+
+            // Post automated response and security reminder
+            const body = [
+              `👋 Thank you @${issue.user.login} for opening this issue!`,
+              '',
+              'Our team will review your report shortly. To help us resolve it quickly:',
+              '- 🔒 **Security Notice:** Please verify that your report does not expose confidential secrets, credentials, or personal network identifiers.',
+              '- 📋 **Diagnostics:** If reporting an unexpected error, include the relevant snippet from your application logs (`%LOCALAPPDATA%\\BlockAds Desktop\\blockads.log`).',
+              `- 📖 **Documentation:** Refer to our [Project Documentation](https://github.com/${context.repo.owner}/${context.repo.repo}/tree/master/docs) for technical specifications and architecture.`
+            ].join('\n');
+
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: issue.number,
+              body: body
+            });
+
+  triage-pr:
+    name: Triage New Pull Request
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Auto-label and respond to pull request
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const pr = context.payload.pull_request;
+            const isDependabot = pr.user.login.includes('dependabot');
+
+            if (isDependabot) {
+              await github.rest.issues.addLabels({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: pr.number,
+                labels: ['dependencies', 'automated-pr']
+              });
+            } else {
+              await github.rest.issues.addLabels({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: pr.number,
+                labels: ['community-pr', 'needs-review']
+              });
+
+              const body = [
+                `🎉 Thank you @${pr.user.login} for your contribution to **BlockAds Desktop**!`,
+                '',
+                'Automated CI checks will now run on your pull request. Before merging, please ensure:',
+                '- [ ] All unit and integration tests pass (`go test -count=1 ./...`).',
+                '- [ ] Frontend compiles without lint/type errors (`npm run build` in `frontend/`).',
+                '- [ ] No temporary debug statements, mock secrets, or unwanted artifacts are included.',
+                `- [ ] Your code adheres to [CONTRIBUTING.md](https://github.com/${context.repo.owner}/${context.repo.repo}/blob/master/CONTRIBUTING.md).`
+              ].join('\n');
+
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: pr.number,
+                body: body
+              });
+            }
