@@ -50,6 +50,19 @@ jobs:
       - name: Install Wails CLI
         run: go install github.com/wailsapp/wails/v2/cmd/wails@v2.17.0
 
+      - name: Install NSIS
+        run: |
+          choco install nsis -y
+          if (Test-Path "C:\Program Files (x86)\NSIS") {
+            echo "C:\Program Files (x86)\NSIS" >> $env:GITHUB_PATH
+          }
+          if (Test-Path "C:\Program Files\NSIS") {
+            echo "C:\Program Files\NSIS" >> $env:GITHUB_PATH
+          }
+
+      - name: Verify NSIS Installation
+        run: makensis /VERSION
+
       - name: Determine Version Tag
         id: version
         shell: bash
@@ -84,6 +97,9 @@ jobs:
           VERSION="${{ steps.version.outputs.tag }}"
           mkdir -p release-dist
           
+          echo "Listing build/bin directory:"
+          ls -la build/bin/
+          
           # 1. Standalone Executable
           if [ ! -f "build/bin/BlockAds-Desktop.exe" ]; then
             echo "Error: build/bin/BlockAds-Desktop.exe not found!"
@@ -92,18 +108,13 @@ jobs:
           cp build/bin/BlockAds-Desktop.exe "release-dist/BlockAds-Desktop-${VERSION}-windows-amd64.exe"
           
           # 2. NSIS Installer
-          if [ -f "build/bin/BlockAds-Desktop-amd64-setup.exe" ]; then
-            cp "build/bin/BlockAds-Desktop-amd64-setup.exe" "release-dist/BlockAds-Desktop-${VERSION}-windows-amd64-setup.exe"
-          elif [ -f "build/bin/BlockAds-Desktop-amd64-installer.exe" ]; then
-            cp "build/bin/BlockAds-Desktop-amd64-installer.exe" "release-dist/BlockAds-Desktop-${VERSION}-windows-amd64-setup.exe"
+          SETUP_FILE=$(ls build/bin/*installer.exe build/bin/*setup.exe 2>/dev/null | head -n 1)
+          if [ -n "$SETUP_FILE" ]; then
+            echo "Found NSIS installer: $SETUP_FILE"
+            cp "$SETUP_FILE" "release-dist/BlockAds-Desktop-${VERSION}-windows-amd64-setup.exe"
           else
-            SETUP_FILE=$(ls build/bin/*installer.exe build/bin/*setup.exe 2>/dev/null | head -n 1)
-            if [ -n "$SETUP_FILE" ]; then
-              cp "$SETUP_FILE" "release-dist/BlockAds-Desktop-${VERSION}-windows-amd64-setup.exe"
-            else
-              echo "Error: NSIS installer binary not found in build/bin!"
-              exit 1
-            fi
+            echo "Error: NSIS installer binary not found in build/bin!"
+            exit 1
           fi
           
           # 3. Portable Bundle ZIP
@@ -122,6 +133,9 @@ jobs:
           echo "Generated Checksum Manifest:"
           cat SHA256SUMS.txt
           cd ..
+          
+          echo "Prepared release assets in release-dist/:"
+          ls -la release-dist/
 
       - name: Upload Artifacts to Job Summary
         uses: actions/upload-artifact@v4
@@ -135,7 +149,6 @@ jobs:
         if: startsWith(github.ref, 'refs/tags/v') || github.event_name == 'workflow_dispatch'
         with:
           tag_name: ${{ steps.version.outputs.tag }}
-          target_commitish: ${{ github.sha }}
           name: "BlockAds Desktop ${{ steps.version.outputs.tag }}"
           draft: false
           prerelease: false
