@@ -108,8 +108,15 @@ jobs:
           cp build/bin/BlockAds-Desktop.exe "release-dist/BlockAds-Desktop-${VERSION}-windows-amd64.exe"
           
           # 2. NSIS Installer
-          SETUP_FILE=$(ls build/bin/*installer.exe build/bin/*setup.exe 2>/dev/null | head -n 1)
-          if [ -n "$SETUP_FILE" ]; then
+          if [ -f "build/bin/BlockAds-Desktop-amd64-setup.exe" ]; then
+            SETUP_FILE="build/bin/BlockAds-Desktop-amd64-setup.exe"
+          elif [ -f "build/bin/BlockAds-Desktop-amd64-installer.exe" ]; then
+            SETUP_FILE="build/bin/BlockAds-Desktop-amd64-installer.exe"
+          else
+            SETUP_FILE=$(find build/bin -type f \( -name "*setup.exe" -o -name "*installer.exe" \) 2>/dev/null | head -n 1)
+          fi
+          
+          if [ -n "$SETUP_FILE" ] && [ -f "$SETUP_FILE" ]; then
             echo "Found NSIS installer: $SETUP_FILE"
             cp "$SETUP_FILE" "release-dist/BlockAds-Desktop-${VERSION}-windows-amd64-setup.exe"
           else
@@ -124,7 +131,7 @@ jobs:
           cp build/windows/portable/README-PORTABLE.txt portable-staging/
           
           cd portable-staging
-          7z a "../release-dist/BlockAds-Desktop-${VERSION}-windows-amd64-portable.zip" *
+          7z a "../release-dist/BlockAds-Desktop-${VERSION}-windows-amd64-portable.zip" .
           cd ..
           
           # 4. Generate SHA256SUMS.txt manifest
