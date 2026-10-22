@@ -9,6 +9,8 @@ import {
   Server,
   Cpu,
   MonitorCheck,
+  Copy,
+  Check,
 } from 'lucide-react';
 import { NeoCard } from '../../components/NeoCard';
 import { NeoButton } from '../../components/NeoButton';
@@ -27,6 +29,7 @@ export const DiagnosticsView: React.FC<DiagnosticsViewProps> = ({
   onRefreshDiagnostics,
 }) => {
   const [isRunning, setIsRunning] = useState(false);
+  const [copiedId, setCopiedId] = useState<string | null>(null);
 
   const handleRun = async () => {
     setIsRunning(true);
@@ -35,6 +38,12 @@ export const DiagnosticsView: React.FC<DiagnosticsViewProps> = ({
     } finally {
       setIsRunning(false);
     }
+  };
+
+  const handleCopyCmd = (id: string, text: string) => {
+    navigator.clipboard.writeText(text);
+    setCopiedId(id);
+    setTimeout(() => setCopiedId(null), 2000);
   };
 
   return (
@@ -104,6 +113,61 @@ export const DiagnosticsView: React.FC<DiagnosticsViewProps> = ({
         </div>
       </div>
 
+      {/* Windows Adapter DNS Activation Guide */}
+      <NeoCard
+        title="Windows Adapter DNS Activation Guide"
+        subtitle="Route system-wide traffic through BlockAds local proxy"
+        badge={
+          <NeoBadge variant="neutral" size="sm">
+            WINDOWS INTEGRATION
+          </NeoBadge>
+        }
+      >
+        <div className="space-y-3 text-xs">
+          <p className="text-[#4B5563] leading-relaxed">
+            By default, BlockAds Desktop operates non-invasively without modifying your network adapters. To filter ads across all Windows browsers (Chrome, Edge, Firefox) and desktop applications, set your active adapter DNS to <code className="bg-[#EBE7DE] px-1 py-0.5 border border-[#121212] font-mono font-bold">127.0.0.1</code> using PowerShell (Run as Administrator):
+          </p>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-1">
+            <div className="p-3 bg-[#FDFBF7] neo-border space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="font-bold text-[#1E7E34] uppercase text-[11px]">
+                  1. Enable BlockAds (Wi-Fi)
+                </span>
+                <button
+                  onClick={() => handleCopyCmd('enable-wifi', 'Set-DnsClientServerAddress -InterfaceAlias "Wi-Fi" -ServerAddresses ("127.0.0.1")')}
+                  className="flex items-center gap-1 text-[11px] font-bold text-[#121212] hover:text-[#B38B6D] cursor-pointer"
+                >
+                  {copiedId === 'enable-wifi' ? <Check className="w-3.5 h-3.5 text-[#1E7E34]" /> : <Copy className="w-3.5 h-3.5" />}
+                  <span>{copiedId === 'enable-wifi' ? 'Copied!' : 'Copy'}</span>
+                </button>
+              </div>
+              <pre className="p-2 bg-[#121212] text-[#F5F1E8] font-mono text-[11px] overflow-x-auto select-all">
+                Set-DnsClientServerAddress -InterfaceAlias "Wi-Fi" -ServerAddresses ("127.0.0.1")
+              </pre>
+            </div>
+
+            <div className="p-3 bg-[#FDFBF7] neo-border space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="font-bold text-[#D97706] uppercase text-[11px]">
+                  2. Restore Default / DHCP (Wi-Fi)
+                </span>
+                <button
+                  onClick={() => handleCopyCmd('reset-wifi', 'Set-DnsClientServerAddress -InterfaceAlias "Wi-Fi" -ResetServerAddresses')}
+                  className="flex items-center gap-1 text-[11px] font-bold text-[#121212] hover:text-[#B38B6D] cursor-pointer"
+                >
+                  {copiedId === 'reset-wifi' ? <Check className="w-3.5 h-3.5 text-[#1E7E34]" /> : <Copy className="w-3.5 h-3.5" />}
+                  <span>{copiedId === 'reset-wifi' ? 'Copied!' : 'Copy'}</span>
+                </button>
+              </div>
+              <pre className="p-2 bg-[#121212] text-[#F5F1E8] font-mono text-[11px] overflow-x-auto select-all">
+                Set-DnsClientServerAddress -InterfaceAlias "Wi-Fi" -ResetServerAddresses
+              </pre>
+            </div>
+          </div>
+        </div>
+      </NeoCard>
+
       {/* Runtime Environment Matrix */}
       <NeoCard
         title="Runtime Environment Matrix"
@@ -120,10 +184,10 @@ export const DiagnosticsView: React.FC<DiagnosticsViewProps> = ({
               Application Version
             </span>
             <span className="font-bold text-[#121212] text-sm mt-0.5 block">
-              {appInfo?.version || '0.1.0-alpha'}
+              {appInfo?.version || '0.4.0'}
             </span>
             <span className="text-[10px] text-[#6B7280] font-sans">
-              {appInfo?.milestone || 'Milestone 1'}
+              {appInfo?.milestone || 'Production Release'}
             </span>
           </div>
 
@@ -156,7 +220,7 @@ export const DiagnosticsView: React.FC<DiagnosticsViewProps> = ({
       {/* Safety & System Invariants Verification */}
       <NeoCard
         title="Safety & Scope Verification Checklist"
-        subtitle="Affirmation of non-invasive operation for Milestone 1"
+        subtitle="Affirmation of non-invasive user-space operation"
         badge={
           <NeoBadge variant="success" size="sm">
             VERIFIED SAFE

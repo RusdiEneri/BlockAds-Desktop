@@ -8,6 +8,7 @@ import {
   XCircle,
   AlertCircle,
   Info,
+  ShieldCheck,
 } from 'lucide-react';
 import { NeoCard } from '../../components/NeoCard';
 import { NeoButton } from '../../components/NeoButton';
@@ -138,12 +139,12 @@ export const CustomRulesView: React.FC<CustomRulesViewProps> = ({
         </NeoButton>
       </div>
 
-      {/* Honest Scope Banner */}
-      <div className="bg-[#FEF3C7] neo-border p-3.5 flex items-start gap-3">
-        <Info className="w-5 h-5 text-[#92400E] shrink-0 mt-0.5" />
-        <div className="text-xs text-[#92400E]">
-          <span className="font-bold">Rule Store Demonstration: </span>
-          Rules created or edited here are validated by the Go backend and kept in memory for testing. In Milestone 4, rules will be persisted to local SQLite storage and evaluated by the in-memory Trie engine.
+      {/* Active Rules Banner */}
+      <div className="bg-[#EBFBEE] neo-border p-3.5 flex items-start gap-3">
+        <ShieldCheck className="w-5 h-5 text-[#1E7E34] shrink-0 mt-0.5" />
+        <div className="text-xs text-[#1E7E34] leading-relaxed">
+          <span className="font-bold">Active Persistent Rules: </span>
+          Custom allow and block rules are stored in local SQLite persistence and evaluated in real-time by the DNS filtering engine.
         </div>
       </div>
 
