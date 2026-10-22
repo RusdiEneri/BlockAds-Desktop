@@ -7,9 +7,9 @@ on:
   workflow_dispatch:
     inputs:
       tag_name:
-        description: 'Tag name to simulate or build (e.g. v0.4.0)'
+        description: 'Release tag name (e.g. v0.4.0)'
         required: false
-        default: ''
+        default: 'v0.4.0'
 
 permissions:
   contents: write
@@ -55,12 +55,21 @@ jobs:
         shell: bash
         run: |
           if [ -n "${{ github.event.inputs.tag_name }}" ]; then
-            TAG="${{ github.event.inputs.tag_name }}"
+            RAW_TAG="${{ github.event.inputs.tag_name }}"
+          elif [[ "$GITHUB_REF" =~ ^refs/tags/ ]]; then
+            RAW_TAG="${GITHUB_REF#refs/tags/}"
           else
-            TAG="${GITHUB_REF#refs/tags/}"
+            RAW_TAG=$(node -p "require('./wails.json').info.productVersion || '0.4.0'")
           fi
-          echo "tag=$TAG" >> $GITHUB_OUTPUT
-          echo "Using version tag: $TAG"
+          
+          # Sanitize tag: replace slashes with dashes, ensure 'v' prefix
+          CLEAN_TAG=$(echo "$RAW_TAG" | tr '/' '-')
+          if [[ ! "$CLEAN_TAG" =~ ^v ]]; then
+            CLEAN_TAG="v$CLEAN_TAG"
+          fi
+          
+          echo "tag=$CLEAN_TAG" >> $GITHUB_OUTPUT
+          echo "Using release tag: $CLEAN_TAG"
 
       - name: Build Windows Executable
         run: wails build -s
@@ -114,10 +123,19 @@ jobs:
           cat SHA256SUMS.txt
           cd ..
 
+      - name: Upload Artifacts to Job Summary
+        uses: actions/upload-artifact@v4
+        with:
+          name: BlockAds-Desktop-${{ steps.version.outputs.tag }}-release-assets
+          path: release-dist/*
+          if-no-files-found: error
+
       - name: Create GitHub Release and Upload Assets
         uses: softprops/action-gh-release@v2
-        if: startsWith(github.ref, 'refs/tags/v')
+        if: startsWith(github.ref, 'refs/tags/v') || github.event_name == 'workflow_dispatch'
         with:
+          tag_name: ${{ steps.version.outputs.tag }}
+          target_commitish: ${{ github.sha }}
           name: "BlockAds Desktop ${{ steps.version.outputs.tag }}"
           draft: false
           prerelease: false
