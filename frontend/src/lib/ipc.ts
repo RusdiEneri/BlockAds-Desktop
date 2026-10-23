@@ -355,6 +355,30 @@ export const ipc = {
     return () => {};
   },
 
+  onProtectionStatus: (callback: (status: models.ProtectionStatus) => void): (() => void) => {
+    if (typeof window !== 'undefined' && (window as any)?.runtime?.EventsOn) {
+      (window as any).runtime.EventsOn('protection:status', callback);
+      return () => {
+        if ((window as any)?.runtime?.EventsOff) {
+          (window as any).runtime.EventsOff('protection:status');
+        }
+      };
+    }
+    return () => {};
+  },
+
+  onSettingsUpdated: (callback: (settings: models.AppSettings) => void): (() => void) => {
+    if (typeof window !== 'undefined' && (window as any)?.runtime?.EventsOn) {
+      (window as any).runtime.EventsOn('settings:updated', callback);
+      return () => {
+        if ((window as any)?.runtime?.EventsOff) {
+          (window as any).runtime.EventsOff('settings:updated');
+        }
+      };
+    }
+    return () => {};
+  },
+
   getSampleQueryLogs: async (): Promise<models.QueryLogEntry[]> => {
     if (isWailsAvailable()) {
       return WailsApp.GetSampleQueryLogs();

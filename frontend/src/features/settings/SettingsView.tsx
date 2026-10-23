@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Settings,
   Server,
@@ -38,6 +38,13 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
   const [upstreamUrl, setUpstreamUrl] = useState(
     settings?.upstreamDohUrl || 'https://dns.caliph.dev/dns-query'
   );
+
+  useEffect(() => {
+    if (settings?.upstreamDohUrl) {
+      setUpstreamUrl(settings.upstreamDohUrl);
+    }
+  }, [settings?.upstreamDohUrl]);
+
   const [statusMessage, setStatusMessage] = useState<{
     type: 'success' | 'error';
     text: string;

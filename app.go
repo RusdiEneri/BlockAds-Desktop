@@ -976,6 +976,12 @@ func (a *App) UpdateUpstreamDoH(url string) error {
 		}
 	}
 
+	if a.ctx != nil {
+		status := a.GetProtectionStatus()
+		wailsRuntime.EventsEmit(a.ctx, "protection:status", status)
+		wailsRuntime.EventsEmit(a.ctx, "settings:updated", current)
+	}
+
 	return nil
 }
 

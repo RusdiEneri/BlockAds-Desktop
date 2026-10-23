@@ -94,10 +94,29 @@ export function App() {
       });
     });
 
-    // 2. Periodic sync from SQLite every 1.5s so external queries to 127.0.0.1:53 are synced automatically
+    // 2. Subscribe to protection status and settings broadcasts
+    const unsubscribeProtection = ipc.onProtectionStatus((status: any) => {
+      if (status) {
+        setProtectionStatus(status);
+      }
+    });
+
+    const unsubscribeSettings = ipc.onSettingsUpdated((cfg: any) => {
+      if (cfg) {
+        setSettings(cfg);
+      }
+    });
+
+    // 3. Periodic sync from SQLite every 1.5s so external queries and state are synced automatically
     const syncInterval = setInterval(async () => {
       try {
-        const freshLogs = await ipc.getSampleQueryLogs();
+        const [freshLogs, freshStatus] = await Promise.all([
+          ipc.getSampleQueryLogs(),
+          ipc.getProtectionStatus(),
+        ]);
+        if (freshStatus) {
+          setProtectionStatus(freshStatus);
+        }
         if (freshLogs && freshLogs.length > 0) {
           setQueryLogs((prev) => {
             if (prev.length === 0 || freshLogs[0].id !== prev[0]?.id) {
@@ -115,6 +134,8 @@ export function App() {
 
     return () => {
       unsubscribeQuery();
+      unsubscribeProtection();
+      unsubscribeSettings();
       clearInterval(syncInterval);
     };
   }, [loadData]);
@@ -241,10 +262,14 @@ export function App() {
 
   const handleUpdateUpstream = async (url: string) => {
     await ipc.updateUpstreamDoH(url);
-    const updatedCfg = await ipc.getSettings();
+    const [updatedCfg, updatedStatus, updatedDiag] = await Promise.all([
+      ipc.getSettings(),
+      ipc.getProtectionStatus(),
+      ipc.runDiagnostics(),
+    ]);
     setSettings(updatedCfg);
-    const updatedStatus = await ipc.getProtectionStatus();
     setProtectionStatus(updatedStatus);
+    setDiagnostics(updatedDiag);
   };
 
   const handleRefreshDiagnostics = async () => {
