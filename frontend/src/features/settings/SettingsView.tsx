@@ -409,7 +409,19 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                 name="bootstrapDns"
                 aria-label="Bootstrap DNS Resolver"
                 type="text"
-                value="1.1.1.1 (Cloudflare Anycast)"
+                value={
+                  settings?.bootstrapDns
+                    ? `${settings.bootstrapDns} (${
+                        settings.bootstrapDns === '8.8.8.8'
+                          ? 'Google'
+                          : settings.bootstrapDns === '1.1.1.1'
+                          ? 'Cloudflare'
+                          : settings.bootstrapDns === '9.9.9.9'
+                          ? 'Quad9'
+                          : 'Anycast'
+                      } Anycast)`
+                    : '8.8.8.8 (Google Anycast)'
+                }
                 disabled
                 className="w-full text-xs font-mono p-2 border-2 border-[#D1CBC0] bg-[#EBE7DE] cursor-not-allowed"
               />

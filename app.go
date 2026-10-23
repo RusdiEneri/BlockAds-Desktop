@@ -957,6 +957,20 @@ func (a *App) UpdateUpstreamDoH(url string) error {
 	cleanURL := strings.TrimSpace(url)
 	current := a.GetSettings()
 	current.UpstreamDoHURL = cleanURL
+
+	bootstrap := current.BootstrapDNS
+	lowerURL := strings.ToLower(cleanURL)
+	if strings.Contains(lowerURL, "google") {
+		bootstrap = "8.8.8.8"
+	} else if strings.Contains(lowerURL, "cloudflare") || strings.Contains(cleanURL, "1.1.1.1") {
+		bootstrap = "1.1.1.1"
+	} else if strings.Contains(lowerURL, "quad9") {
+		bootstrap = "9.9.9.9"
+	} else if strings.TrimSpace(bootstrap) == "" {
+		bootstrap = "1.1.1.1"
+	}
+	current.BootstrapDNS = bootstrap
+
 	if err := a.storage.UpdateSettings(context.Background(), current); err != nil {
 		return err
 	}
@@ -967,8 +981,9 @@ func (a *App) UpdateUpstreamDoH(url string) error {
 
 	if handler != nil {
 		newRes, err := upstream.NewDoHResolver(upstream.Config{
-			EndpointURL: cleanURL,
-			Timeout:     5 * time.Second,
+			EndpointURL:  cleanURL,
+			BootstrapDNS: bootstrap,
+			Timeout:      5 * time.Second,
 		})
 		if err == nil {
 			handler.SetResolver(newRes)
