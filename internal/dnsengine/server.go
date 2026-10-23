@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"net"
+	"strconv"
 	"strings"
 	"sync"
 
@@ -82,7 +83,7 @@ func (s *Server) Start() error {
 	}
 
 	// 1. Bind TCP listener first to acquire port (including port 0 dynamic assignment)
-	bindTCPTarget := fmt.Sprintf("%s:%d", s.listenAddr, s.configuredPort)
+	bindTCPTarget := net.JoinHostPort(s.listenAddr, strconv.Itoa(s.configuredPort))
 	tcpListener, err := net.Listen("tcp", bindTCPTarget)
 	if err != nil {
 		return fmt.Errorf("failed to bind TCP listener on %s: %w", bindTCPTarget, err)
@@ -97,7 +98,7 @@ func (s *Server) Start() error {
 	actualPort := tcpAddr.Port
 
 	// 2. Bind UDP PacketConn to the exact same port
-	bindUDPTarget := fmt.Sprintf("%s:%d", s.listenAddr, actualPort)
+	bindUDPTarget := net.JoinHostPort(s.listenAddr, strconv.Itoa(actualPort))
 	udpConn, err := net.ListenPacket("udp", bindUDPTarget)
 	if err != nil {
 		_ = tcpListener.Close()
@@ -105,7 +106,7 @@ func (s *Server) Start() error {
 	}
 	s.udpConn = udpConn
 
-	s.boundAddr = fmt.Sprintf("%s:%d", s.listenAddr, actualPort)
+	s.boundAddr = net.JoinHostPort(s.listenAddr, strconv.Itoa(actualPort))
 
 	// 3. Create miekg/dns server instances using the bound sockets
 	s.tcpServer = &dns.Server{

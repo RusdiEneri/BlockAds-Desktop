@@ -518,3 +518,78 @@ func TestUpdater_CustomRulePrecedenceAndDisablingProvenance(t *testing.T) {
 		t.Errorf("analytics.com should still be blocked")
 	}
 }
+
+func TestUpdater_AdblockSubscriptionUpdate(t *testing.T) {
+	ctx := context.Background()
+	store := setupTestStore(t)
+	reloader := &mockReloader{matcher: filters.NewMatcher()}
+
+	adblockContent := `[Adblock Plus 2.0]
+! Title: Test Adblock List
+||ads-adblock.com^
+||sub.tracker-adblock.org^
+@@||safe-whitelisted.com^
+##.cosmetic-rule
+||path.rule.com/banner.gif^
+`
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "text/plain")
+		_, _ = w.Write([]byte(adblockContent))
+	}))
+	defer server.Close()
+
+	sub := storage.FilterSubscription{
+		ID:        "sub-test-adblock",
+		Name:      "Test Adblock",
+		SourceURL: server.URL,
+		Format:    "adblock",
+		Enabled:   true,
+	}
+	if err := store.SaveFilterSubscription(ctx, sub); err != nil {
+		t.Fatalf("failed to add subscription: %v", err)
+	}
+
+	dl := filtermanager.NewDownloader(filtermanager.DownloaderConfig{
+		AllowPrivateNetworks: true,
+	})
+	updater := filtermanager.NewFilterUpdater(store, dl, reloader)
+
+	res, err := updater.RefreshSubscription(ctx, sub.ID)
+	if err != nil {
+		t.Fatalf("refresh failed: %v", err)
+	}
+
+	if res.Status != "updated" {
+		t.Errorf("expected status 'updated', got %q", res.Status)
+	}
+	if res.RuleCount != 3 {
+		t.Errorf("expected 3 accepted rules, got %d", res.RuleCount)
+	}
+
+	// Verify in DB
+	updatedSub, err := store.GetFilterSubscription(ctx, sub.ID)
+	if err != nil {
+		t.Fatalf("failed to fetch updated sub: %v", err)
+	}
+	if updatedSub.RuleCount != 3 {
+		t.Errorf("expected DB rule_count 3, got %d", updatedSub.RuleCount)
+	}
+	if updatedSub.LastStatus != "ok" {
+		t.Errorf("expected DB last_status 'ok', got %q", updatedSub.LastStatus)
+	}
+	if updatedSub.LastError != "" {
+		t.Errorf("expected DB last_error empty, got %q", updatedSub.LastError)
+	}
+
+	// Verify matcher
+	matcher := reloader.Matcher()
+	if m := matcher.Match("ads-adblock.com"); m.Action != filters.ActionBlock {
+		t.Errorf("expected ads-adblock.com to be ActionBlock, got %s", m.Action)
+	}
+	if m := matcher.Match("sub.tracker-adblock.org"); m.Action != filters.ActionBlock {
+		t.Errorf("expected sub.tracker-adblock.org to be ActionBlock, got %s", m.Action)
+	}
+	if m := matcher.Match("safe-whitelisted.com"); m.Action != filters.ActionAllow {
+		t.Errorf("expected safe-whitelisted.com to be ActionAllow, got %s", m.Action)
+	}
+}

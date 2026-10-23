@@ -226,8 +226,10 @@ func (u *FilterUpdater) RefreshSubscription(ctx context.Context, subID string) (
 	parseFormat := filters.FormatAuto
 	if strings.EqualFold(sub.Format, "hosts") {
 		parseFormat = filters.FormatHosts
-	} else if strings.EqualFold(sub.Format, "plain") {
+	} else if strings.EqualFold(sub.Format, "plain") || strings.EqualFold(sub.Format, "domains") {
 		parseFormat = filters.FormatPlain
+	} else if strings.EqualFold(sub.Format, "adblock") {
+		parseFormat = filters.FormatAdblock
 	}
 
 	parseRes, parseErr := filters.ParseFilterList(bytes.NewReader(resp.Body), parseFormat)

@@ -5,6 +5,7 @@ import (
 
 	"blockads-desktop/internal/models"
 	"blockads-desktop/internal/rewrites"
+	"blockads-desktop/internal/sysdns"
 )
 
 func TestAppInitialization(t *testing.T) {
@@ -484,5 +485,79 @@ func TestApp_StartupIntegration(t *testing.T) {
 	}
 	if updated.Enabled {
 		t.Errorf("expected startup to be disabled")
+	}
+}
+
+type mockSysDNSManager struct {
+	applyCalls   int
+	restoreCalls int
+	isActive     bool
+}
+
+func (m *mockSysDNSManager) ApplyBlockAdsDNS() error {
+	m.applyCalls++
+	m.isActive = true
+	return nil
+}
+
+func (m *mockSysDNSManager) RestoreDefaultDNS() error {
+	m.restoreCalls++
+	m.isActive = false
+	return nil
+}
+
+func (m *mockSysDNSManager) IsActive() (bool, error) {
+	return m.isActive, nil
+}
+
+func (m *mockSysDNSManager) FlushDNSCache() error {
+	return nil
+}
+
+func (m *mockSysDNSManager) GetBackups() []sysdns.AdapterBackup {
+	return nil
+}
+
+func TestApp_SysDNS_ProtectionToggleIntegration(t *testing.T) {
+	app := NewApp()
+	mockDNS := &mockSysDNSManager{}
+	app.SetSysDNSManager(mockDNS)
+
+	// 1. Toggle Protection Off -> must call RestoreDefaultDNS and update setting
+	status, err := app.ToggleProtection(false)
+	if err != nil {
+		t.Fatalf("unexpected error toggling protection off: %v", err)
+	}
+	if status.IsActive {
+		t.Errorf("expected status inactive")
+	}
+	if mockDNS.restoreCalls != 1 {
+		t.Errorf("expected 1 restore call, got %d", mockDNS.restoreCalls)
+	}
+	settings := app.GetSettings()
+	if settings.SystemDNSIntegrated {
+		t.Errorf("expected SystemDNSIntegrated to be false in settings")
+	}
+
+	// 2. Toggle Protection On -> must call ApplyBlockAdsDNS and update setting
+	status, err = app.ToggleProtection(true)
+	if err != nil {
+		t.Fatalf("unexpected error toggling protection on: %v", err)
+	}
+	if !status.IsActive {
+		t.Errorf("expected status active")
+	}
+	if mockDNS.applyCalls != 1 {
+		t.Errorf("expected 1 apply call, got %d", mockDNS.applyCalls)
+	}
+	settings = app.GetSettings()
+	if !settings.SystemDNSIntegrated {
+		t.Errorf("expected SystemDNSIntegrated to be true in settings")
+	}
+
+	// 3. Close() -> must safely call RestoreDefaultDNS
+	_ = app.Close()
+	if mockDNS.restoreCalls != 2 {
+		t.Errorf("expected 2 restore calls after Close(), got %d", mockDNS.restoreCalls)
 	}
 }

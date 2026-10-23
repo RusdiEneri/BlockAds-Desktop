@@ -189,6 +189,11 @@ func ExtractFilterMetadata(r io.Reader, sourceURL string) (*ExtractedMetadata, e
 		}
 
 		// Active rule detection
+		if strings.HasPrefix(line, "[") {
+			detectedFormat = "adblock"
+			continue
+		}
+
 		if strings.HasPrefix(line, "0.0.0.0") || strings.HasPrefix(line, "127.0.0.1") {
 			detectedFormat = "hosts"
 			fields := strings.Fields(line)
@@ -198,7 +203,7 @@ func ExtractFilterMetadata(r io.Reader, sourceURL string) (*ExtractedMetadata, e
 					ruleCount++
 				}
 			}
-		} else if strings.HasPrefix(line, "||") {
+		} else if strings.HasPrefix(line, "||") || strings.HasPrefix(line, "@@||") {
 			detectedFormat = "adblock"
 			ruleCount++
 		} else if models.ValidateDomain(line) == nil {

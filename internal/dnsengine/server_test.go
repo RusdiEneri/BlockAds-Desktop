@@ -136,3 +136,46 @@ func TestServer_RejectNonLoopbackBinding(t *testing.T) {
 		t.Fatalf("expected error binding to 0.0.0.0")
 	}
 }
+
+func TestServer_IPv6LoopbackBinding(t *testing.T) {
+	matcher := filters.NewMatcher()
+	matcher.BuildFromRules([]filters.Rule{
+		{Domain: "blocked.local", Action: filters.ActionBlock, Enabled: true, Source: "test"},
+	})
+
+	handler := dnsengine.NewHandler(dnsengine.HandlerConfig{
+		Matcher:     matcher,
+		SinkholeTTL: 60,
+	})
+
+	srv := dnsengine.NewServer(dnsengine.ServerConfig{
+		ListenAddr: "::1",
+		Port:       0,
+		Handler:    handler,
+	})
+
+	err := srv.Start()
+	if err != nil {
+		t.Skipf("skipping IPv6 loopback test: %v", err)
+	}
+	defer func() {
+		_ = srv.Shutdown(context.Background())
+	}()
+
+	addr := srv.Addr()
+	if addr == "" {
+		t.Fatalf("expected non-empty IPv6 server address")
+	}
+
+	udpClient := &dns.Client{Net: "udp", Timeout: 2 * time.Second}
+	reqUDP := new(dns.Msg)
+	reqUDP.SetQuestion("blocked.local.", dns.TypeAAAA)
+
+	respUDP, _, err := udpClient.Exchange(reqUDP, addr)
+	if err != nil {
+		t.Fatalf("failed UDP exchange over IPv6 loopback: %v", err)
+	}
+	if len(respUDP.Answer) == 0 {
+		t.Fatalf("expected sinkholed answer over IPv6")
+	}
+}

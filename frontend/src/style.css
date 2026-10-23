@@ -1,14 +1,28 @@
 @import "tailwindcss";
 
 :root {
-  --surface-bg: #F5F1E8;
-  --surface-card: #FFFFFF;
-  --surface-subtle: #EBE7DE;
-  --surface-dark: #121212;
-  --text-primary: #121212;
-  --text-secondary: #4B5563;
-  --accent-primary: #B38B6D;
-  --border-strong: #121212;
+  --color-crt-green: #33FF00;
+  --color-warm-beige: #D2B48C;
+  --color-chassis-dark: #191B22;
+  --color-console-surface: #242833;
+  --color-screen-well: #12141A;
+  --color-bezel-border: #3F4657;
+  --color-text-primary: #E8E0D0;
+  --color-text-muted: #A0AAB8;
+  --color-phosphor-amber: #FFB000;
+  --color-tape-red-alert: #FF4D4D;
+  --color-tape-red-solid: #CC0000;
+
+  /* Legacy aliases mapped to Cassette Futurism tokens */
+  --surface-bg: #191B22;
+  --surface-card: #242833;
+  --surface-subtle: #1F242E;
+  --surface-dark: #12141A;
+  --text-primary: #E8E0D0;
+  --text-secondary: #D2B48C;
+  --text-muted: #A0AAB8;
+  --accent-primary: #33FF00;
+  --border-strong: #3F4657;
 }
 
 * {
@@ -19,40 +33,114 @@ html, body, #root {
   height: 100%;
   margin: 0;
   padding: 0;
-  background-color: var(--surface-bg);
-  color: var(--text-primary);
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  background-color: #191B22;
+  color: #E8E0D0;
+  font-family: 'JetBrains Mono', 'VT323', Consolas, monospace;
   -webkit-font-smoothing: antialiased;
   user-select: none;
 }
 
-code, kbd, samp, pre {
-  font-family: "Cascadia Code", Consolas, "Courier New", monospace;
+/* CRT Scanlines Overlay */
+.crt-scanlines {
+  background: linear-gradient(
+    rgba(18, 16, 16, 0) 50%, 
+    rgba(0, 0, 0, 0.25) 50%
+  ), linear-gradient(
+    90deg,
+    rgba(255, 0, 0, 0.02),
+    rgba(0, 255, 0, 0.01),
+    rgba(0, 0, 255, 0.02)
+  );
+  background-size: 100% 4px, 6px 100%;
+  pointer-events: none;
 }
 
-/* Neo-Brutalist utility classes */
+/* Phosphor Glow Utilities */
+.glow-green {
+  text-shadow: 0 0 6px rgba(51, 255, 0, 0.8), 0 0 14px rgba(51, 255, 0, 0.45);
+}
+
+.glow-amber {
+  text-shadow: 0 0 6px rgba(255, 176, 0, 0.8), 0 0 14px rgba(255, 176, 0, 0.45);
+}
+
+.glow-red {
+  text-shadow: 0 0 6px rgba(255, 77, 77, 0.8), 0 0 14px rgba(255, 77, 77, 0.45);
+}
+
+.box-glow-green {
+  box-shadow: 0 0 12px rgba(51, 255, 0, 0.35), inset 0 0 8px rgba(51, 255, 0, 0.15);
+}
+
+.box-glow-amber {
+  box-shadow: 0 0 12px rgba(255, 176, 0, 0.35), inset 0 0 8px rgba(255, 176, 0, 0.15);
+}
+
+.box-glow-red {
+  box-shadow: 0 0 12px rgba(255, 77, 77, 0.35), inset 0 0 8px rgba(255, 77, 77, 0.15);
+}
+
+/* Cassette Chassis and Screen Wells */
+.cassette-bezel {
+  border: 2px solid #3F4657;
+  border-radius: 8px;
+  box-shadow: inset 1px 1px 0px rgba(255, 255, 255, 0.1), inset -1px -1px 0px rgba(0, 0, 0, 0.6), 0 4px 12px rgba(0, 0, 0, 0.45);
+}
+
+.screen-well {
+  background-color: #12141A;
+  border: 2px solid #2B303C;
+  border-radius: 6px;
+  box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.7);
+}
+
+/* Tape Reel Rotation Animation */
+@keyframes spin-reel {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.animate-reel {
+  animation: spin-reel 4s linear infinite;
+}
+
+.animate-reel-reverse {
+  animation: spin-reel 4s linear infinite reverse;
+}
+
+/* Terminal Cursor Blink */
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+
+.animate-cursor {
+  animation: blink 0.9s steps(2, start) infinite;
+}
+
+/* Neo-Utility compatibility mapping with Cassette Futurism 8px radius */
 .neo-border {
-  border: 2px solid #121212;
+  border: 2px solid #3F4657;
 }
 
 .neo-border-b {
-  border-bottom: 2px solid #121212;
+  border-bottom: 2px solid #3F4657;
 }
 
 .neo-border-r {
-  border-right: 2px solid #121212;
+  border-right: 2px solid #3F4657;
 }
 
 .neo-shadow {
-  box-shadow: 2px 2px 0px #121212;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
 }
 
 .neo-shadow-md {
-  box-shadow: 3px 3px 0px #121212;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.45);
 }
 
 .neo-shadow-lg {
-  box-shadow: 5px 5px 0px #121212;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.55);
 }
 
 .neo-shadow-hover {
@@ -61,26 +149,28 @@ code, kbd, samp, pre {
 
 .neo-shadow-hover:hover {
   transform: translate(-1px, -1px);
-  box-shadow: 3px 3px 0px #121212;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.5);
 }
 
 .neo-shadow-hover:active {
-  transform: translate(2px, 2px);
-  box-shadow: 0px 0px 0px #121212;
+  transform: translateY(1px);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
 }
 
-/* Custom Scrollbars */
+/* Analog Instrument Scrollbar */
 ::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+  width: 9px;
+  height: 9px;
 }
 ::-webkit-scrollbar-track {
-  background: #EBE7DE;
-  border-left: 1px solid #121212;
+  background: #15171E;
+  border-left: 1px solid #2E3442;
 }
 ::-webkit-scrollbar-thumb {
-  background: #121212;
+  background: #3F4657;
+  border-radius: 4px;
+  border: 2px solid #15171E;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #4B5563;
+  background: #33FF00;
 }

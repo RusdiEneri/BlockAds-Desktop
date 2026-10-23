@@ -6,6 +6,7 @@ import {rewrites} from '../models';
 import {storage} from '../models';
 import {filters} from '../models';
 import {filtermanager} from '../models';
+import {sysdns} from '../models';
 
 export function AddCustomRule(arg1:string,arg2:string,arg3:string):Promise<models.CustomRule>;
 
@@ -45,6 +46,8 @@ export function GetSettings():Promise<models.AppSettings>;
 
 export function GetStartupStatus():Promise<models.StartupStatus>;
 
+export function GetTelemetryStats():Promise<models.TelemetryStats>;
+
 export function Logger():Promise<storage.AsyncLogger>;
 
 export function Matcher():Promise<filters.Matcher>;
@@ -67,11 +70,15 @@ export function SetMatcher(arg1:filters.Matcher):Promise<void>;
 
 export function SetStartWithWindows(arg1:boolean):Promise<models.StartupStatus>;
 
+export function SetSysDNSManager(arg1:sysdns.Manager):Promise<void>;
+
 export function SimulateQuery(arg1:string,arg2:string):Promise<models.QueryLogEntry>;
 
 export function Storage():Promise<storage.Storage>;
 
 export function SubscribeCatalogFilter(arg1:string):Promise<models.FilterList>;
+
+export function SysDNSManager():Promise<sysdns.Manager>;
 
 export function ToggleCustomRule(arg1:string,arg2:boolean):Promise<void>;
 

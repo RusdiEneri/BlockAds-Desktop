@@ -9,6 +9,7 @@ import {
   ShieldAlert,
   ShieldCheck,
   Power,
+  Disc,
 } from 'lucide-react';
 import { NeoBadge } from './NeoBadge';
 
@@ -36,76 +37,120 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onToggleProtection,
 }) => {
   const navItems = [
-    { id: 'dashboard' as NavTab, label: 'Dashboard', icon: LayoutDashboard },
-    { id: 'querylog' as NavTab, label: 'Query Log', icon: Activity },
-    { id: 'filters' as NavTab, label: 'Filter Lists', icon: Shield },
-    { id: 'rules' as NavTab, label: 'Custom Rules', icon: FileCode },
-    { id: 'settings' as NavTab, label: 'Settings', icon: Settings },
-    { id: 'diagnostics' as NavTab, label: 'Diagnostics', icon: Terminal },
+    { id: 'dashboard' as NavTab, label: '01. DASHBOARD', icon: LayoutDashboard },
+    { id: 'querylog' as NavTab, label: '02. QUERY LOG', icon: Activity },
+    { id: 'filters' as NavTab, label: '03. FILTER LISTS', icon: Shield },
+    { id: 'rules' as NavTab, label: '04. CUSTOM RULES', icon: FileCode },
+    { id: 'settings' as NavTab, label: '05. SETTINGS', icon: Settings },
+    { id: 'diagnostics' as NavTab, label: '06. DIAGNOSTICS', icon: Terminal },
   ];
 
   return (
-    <aside className="w-64 bg-[#121212] text-[#F5F1E8] flex flex-col h-screen neo-border-r select-none shrink-0">
-      {/* Brand Header */}
-      <div className="p-4 neo-border-b border-[#2A2A2A] bg-[#161616]">
+    <aside className="w-64 bg-[#191C24] text-[#E8E0D0] flex flex-col h-screen border-r-2 border-[#373E4F] select-none shrink-0 relative">
+      {/* Brand Header with Animated Cassette Spools */}
+      <div className="p-4 border-b-2 border-[#2F3543] bg-[#14161E]">
         <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 bg-[#B38B6D] border-2 border-[#F5F1E8] flex items-center justify-center font-black text-black text-sm shadow-[2px_2px_0px_#F5F1E8]">
-            <Shield className="w-4 h-4 text-black fill-current" />
+          <div className="w-9 h-9 rounded-lg bg-[#242936] border-2 border-[#4A5369] flex items-center justify-center text-[#33FF00] shadow-[inset_0_2px_4px_rgba(0,0,0,0.5)]">
+            <Disc className={`w-5 h-5 ${isProtected ? 'animate-reel text-[#33FF00]' : 'text-[#6C768D]'}`} />
           </div>
           <div>
             <div className="flex items-center gap-1.5">
-              <span className="font-extrabold text-sm tracking-wider text-[#F5F1E8]">
+              <span className="font-['VT323',monospace] text-2xl font-bold tracking-wider text-[#33FF00] glow-green leading-none">
                 BLOCKADS
               </span>
-              <span className="text-[10px] font-bold bg-[#B38B6D] text-black px-1 py-0.2 rounded-[1px]">
-                DESKTOP
+              <span className="text-[10px] font-mono font-bold bg-[#D2B48C] text-[#14161E] px-1 py-0.2 rounded">
+                MK-84
               </span>
             </div>
-            <p className="text-[10px] text-[#9CA3AF] tracking-wide font-mono mt-0.5">
-              WINDOWS DNS FILTER
+            <p className="text-[10px] text-[#A0AAB8] tracking-wider font-mono mt-0.5">
+              ANALOG-DIGITAL DNS
             </p>
+          </div>
+        </div>
+
+        {/* Cassette Tape Deck Micro Window */}
+        <div className="mt-3 bg-[#0E1015] border-2 border-[#303644] rounded-lg p-2 relative overflow-hidden shadow-inner">
+          <div className="flex items-center justify-between px-2">
+            {/* Left Spool */}
+            <div className="flex flex-col items-center">
+              <div
+                className={`w-6 h-6 rounded-full border-2 border-[#4A5368] bg-[#1E232F] flex items-center justify-center relative ${
+                  isProtected ? 'animate-reel' : ''
+                }`}
+              >
+                <div className="w-2 h-2 rounded-full bg-[#0E1015]" />
+                <div className="absolute w-full h-0.5 bg-[#4A5368]" />
+                <div className="absolute h-full w-0.5 bg-[#4A5368]" />
+              </div>
+            </div>
+
+            {/* Tape Header Label */}
+            <div className="text-center">
+              <div className="text-[9px] font-mono uppercase tracking-widest text-[#D2B48C]">
+                {isProtected ? 'TAPE 01 // SIDE A' : 'TAPE PAUSED'}
+              </div>
+              <div className="w-16 h-1 bg-[#CC0000] mx-auto my-1 rounded-full opacity-80" />
+              <div className="text-[8px] font-mono text-[#A0AAB8]">
+                {isProtected ? 'PLAYING 4.75 CM/S' : 'MOTOR STOPPED'}
+              </div>
+            </div>
+
+            {/* Right Spool */}
+            <div className="flex flex-col items-center">
+              <div
+                className={`w-6 h-6 rounded-full border-2 border-[#4A5368] bg-[#1E232F] flex items-center justify-center relative ${
+                  isProtected ? 'animate-reel-reverse' : ''
+                }`}
+              >
+                <div className="w-2 h-2 rounded-full bg-[#0E1015]" />
+                <div className="absolute w-full h-0.5 bg-[#4A5368]" />
+                <div className="absolute h-full w-0.5 bg-[#4A5368]" />
+              </div>
+            </div>
           </div>
         </div>
       </div>
 
-      {/* Operational State Pill */}
-      <div className="px-4 py-3 neo-border-b border-[#2A2A2A] bg-[#1A1A1A]">
+      {/* Operational State Panel */}
+      <div className="px-4 py-3 border-b-2 border-[#2F3543] bg-[#181B23]">
         <div className="flex items-center justify-between mb-1.5">
-          <span className="text-[10px] font-bold uppercase tracking-wider text-[#9CA3AF]">
-            DNS Protection
+          <span className="text-[10px] font-bold uppercase tracking-wider text-[#A0AAB8] font-mono">
+            HEAD OPERATION
           </span>
           <NeoBadge variant={isProtected ? 'success' : 'warning'} size="sm">
-            {isProtected ? 'ACTIVE' : 'PAUSED'}
+            {isProtected ? 'REC / RUN' : 'STANDBY'}
           </NeoBadge>
         </div>
         <div className="flex items-center justify-between gap-2 mt-1">
-          <div className="flex items-center gap-2 text-xs font-bold text-[#F5F1E8]">
+          <div className="flex items-center gap-2 text-xs font-bold text-[#E8E0D0] font-mono">
             {isProtected ? (
-              <ShieldCheck className="w-4 h-4 text-[#1E7E34]" />
+              <ShieldCheck className="w-4 h-4 text-[#33FF00]" />
             ) : (
-              <ShieldAlert className="w-4 h-4 text-[#D97706]" />
+              <ShieldAlert className="w-4 h-4 text-[#FFB000]" />
             )}
-            <span>{isProtected ? 'Shield Active' : 'Shield Paused'}</span>
+            <span>{isProtected ? 'LOOPBACK ACTIVE' : 'SHIELD MUTED'}</span>
           </div>
           {onToggleProtection && (
             <button
               onClick={() => onToggleProtection(!isProtected)}
-              title={isProtected ? 'Click to Pause Protection' : 'Click to Enable Protection'}
-              className={`p-1.5 border border-[#4B5563] text-xs font-mono font-bold flex items-center gap-1 hover:border-white transition-colors cursor-pointer ${
-                isProtected ? 'bg-[#1E7E34] text-white' : 'bg-[#D97706] text-white'
+              title={isProtected ? 'Pause Engine' : 'Engage Engine'}
+              className={`p-1.5 rounded border text-xs font-mono font-bold flex items-center gap-1 transition-all cursor-pointer focus-visible:outline-2 focus-visible:outline-[#33FF00] ${
+                isProtected
+                  ? 'bg-[#103816] text-[#33FF00] border-[#1C5927] hover:bg-[#154A1E]'
+                  : 'bg-[#38260A] text-[#FFB000] border-[#664610] hover:bg-[#4D330E]'
               }`}
             >
-              <Power className="w-3 h-3" />
+              <Power className="w-3.5 h-3.5" />
             </button>
           )}
         </div>
-        <p className="text-[10px] text-[#9CA3AF] font-mono mt-1 leading-tight">
-          {isProtected ? 'Filtering loopback 127.0.0.1:53' : 'Ad-blocking temporarily bypassed'}
+        <p className="text-[10px] text-[#A0AAB8] font-mono mt-1 leading-tight">
+          {isProtected ? 'Intercepting 127.0.0.1:53' : 'Bypassing filter engine'}
         </p>
       </div>
 
-      {/* Navigation */}
-      <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
+      {/* Navigation Buttons */}
+      <nav className="flex-1 px-3 py-4 space-y-1.5 overflow-y-auto">
         {navItems.map((item) => {
           const Icon = item.icon;
           const isActive = currentTab === item.id;
@@ -114,27 +159,27 @@ export const Sidebar: React.FC<SidebarProps> = ({
             <button
               key={item.id}
               onClick={() => onSelectTab(item.id)}
-              className={`w-full flex items-center gap-3 px-3 py-2.5 text-xs font-bold uppercase tracking-wider transition-all duration-75 text-left border-2 ${
+              className={`w-full flex items-center gap-3 px-3 py-2.5 text-xs font-mono font-bold uppercase tracking-wider transition-all duration-100 text-left rounded-lg border-2 cursor-pointer focus-visible:outline-2 focus-visible:outline-[#33FF00] ${
                 isActive
-                  ? 'bg-[#F5F1E8] text-[#121212] border-[#F5F1E8] shadow-[2px_2px_0px_#B38B6D]'
-                  : 'bg-transparent text-[#9CA3AF] border-transparent hover:text-[#F5F1E8] hover:bg-[#1E1E1E]'
+                  ? 'bg-[#242A36] text-[#33FF00] border-[#3F485C] shadow-[0_2px_8px_rgba(51,255,0,0.2)] glow-green'
+                  : 'bg-transparent text-[#A0AAB8] border-transparent hover:text-[#D2B48C] hover:bg-[#1E232E]'
               }`}
             >
-              <Icon className={`w-4 h-4 ${isActive ? 'text-[#121212]' : 'text-[#6B7280]'}`} />
+              <Icon className={`w-4 h-4 ${isActive ? 'text-[#33FF00]' : 'text-[#6C768D]'}`} />
               <span>{item.label}</span>
             </button>
           );
         })}
       </nav>
 
-      {/* Footer Info */}
-      <div className="p-3 neo-border-t border-[#2A2A2A] bg-[#161616] text-[11px] text-[#9CA3AF]">
-        <div className="flex items-center justify-between font-mono">
-          <span>{appVersion || 'v0.1.0-alpha'}</span>
-          <span className="text-[#6B7280]">Go + Wails v2</span>
+      {/* Footer Info / Tape Counter */}
+      <div className="p-3 border-t-2 border-[#2F3543] bg-[#14161E] text-[11px] text-[#A0AAB8] font-mono">
+        <div className="flex items-center justify-between">
+          <span className="text-[#D2B48C] font-bold">CTR 0428.1</span>
+          <span className="text-[#6C768D]">{appVersion || 'v0.1.0-alpha'}</span>
         </div>
-        <p className="text-[10px] text-[#6B7280] mt-1">
-          Open-Source Windows Privacy
+        <p className="text-[10px] text-[#6C768D] mt-0.5">
+          CASSETTE FUTURISM OS
         </p>
       </div>
     </aside>

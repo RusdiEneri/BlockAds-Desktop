@@ -298,8 +298,11 @@ export function App() {
   };
 
   return (
-    <div className="flex h-screen w-screen overflow-hidden bg-[#F5F1E8] text-[#121212]">
-      {/* NeoBrutalist Splash Screen Overlay */}
+    <div className="flex h-screen w-screen overflow-hidden bg-[#1B1E26] text-[#E8E0D0] relative">
+      {/* Authentic CRT Scanline Overlay across Terminal */}
+      <div className="pointer-events-none fixed inset-0 z-50 crt-scanlines opacity-35" />
+
+      {/* Retro Splash Screen Overlay */}
       {showSplash && (
         <SplashScreen
           version={appInfo?.version || 'v0.4.0'}
@@ -320,15 +323,15 @@ export function App() {
       />
 
       {/* Main Content Workspace */}
-      <div className="flex-1 flex flex-col h-screen overflow-hidden">
+      <div className="flex-1 flex flex-col h-screen overflow-hidden relative">
         {/* Top Desktop Bar */}
-        <header className="h-14 neo-border-b bg-white flex items-center justify-between px-6 shrink-0 select-none">
+        <header className="h-14 border-b-2 border-[#373E4F] bg-[#14161E] flex items-center justify-between px-6 shrink-0 select-none">
           <div className="flex items-center gap-3">
-            <span className="text-xs font-black uppercase tracking-wider text-[#121212]">
-              BlockAds Desktop
+            <span className="font-['VT323',monospace] text-2xl font-bold tracking-wider text-[#33FF00] glow-green">
+              {'>'} BLOCKADS TERMINAL
             </span>
-            <span className="text-xs text-[#9CA3AF]">/</span>
-            <span className="text-xs font-bold uppercase tracking-wider text-[#B38B6D]">
+            <span className="text-xs text-[#555E70] font-mono">/</span>
+            <span className="text-sm font-mono font-bold uppercase tracking-wider text-[#D2B48C]">
               {currentTab}
             </span>
           </div>
@@ -336,35 +339,35 @@ export function App() {
           <div className="flex items-center gap-3">
             <NeoBadge variant={protectionStatus?.isActive ?? true ? 'success' : 'warning'} size="sm">
               <span className="w-1.5 h-1.5 rounded-full bg-current mr-1 inline-block animate-ping" />
-              {protectionStatus?.isActive ?? true ? 'PROTECTION ACTIVE' : 'PROTECTION PAUSED'}
+              {protectionStatus?.isActive ?? true ? 'MAGNETIC HEAD: ENGAGED' : 'MAGNETIC HEAD: IDLE'}
             </NeoBadge>
 
             <button
               onClick={loadData}
               title="Refresh telemetry & status from Go engine"
-              className="p-1.5 border-2 border-[#121212] bg-[#F5F1E8] hover:bg-white transition-all neo-shadow-hover cursor-pointer"
+              className="p-2 rounded-lg border-2 border-[#414A5D] bg-[#222733] hover:bg-[#2B3242] hover:border-[#33FF00] text-[#E8E0D0] hover:text-[#33FF00] transition-all cursor-pointer shadow-[0_2px_6px_rgba(0,0,0,0.3)]"
             >
-              <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin' : ''}`} />
+              <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin text-[#33FF00]' : ''}`} />
             </button>
           </div>
         </header>
 
         {/* Scrollable View Container */}
-        <main className="flex-1 overflow-y-auto p-6">
+        <main className="flex-1 overflow-y-auto p-6 bg-[#181B23]">
           {loadError ? (
-            <div className="p-6 bg-[#FEECEB] neo-border neo-shadow-md space-y-3 max-w-lg mx-auto mt-12">
-              <div className="flex items-center gap-2 text-sm font-bold text-[#D9381E]">
-                <AlertTriangle className="w-5 h-5" />
-                <span>Backend Initialization Error</span>
+            <div className="p-6 bg-[#2B1010] border-2 border-[#661E1E] rounded-lg shadow-lg space-y-3 max-w-lg mx-auto mt-12">
+              <div className="flex items-center gap-2 text-sm font-mono font-bold text-[#FF4D4D]">
+                <AlertTriangle className="w-5 h-5 text-[#FF4D4D]" />
+                <span>TERMINAL INITIALIZATION HALT</span>
               </div>
-              <p className="text-xs text-[#4B5563] leading-relaxed font-mono bg-white p-3 border border-[#121212]">
+              <p className="text-xs text-[#E8E0D0] leading-relaxed font-mono bg-[#14161E] p-3 rounded border border-[#4A1F1F]">
                 {loadError}
               </p>
               <button
                 onClick={loadData}
-                className="px-4 py-2 bg-[#121212] text-[#F5F1E8] font-bold text-xs uppercase border-2 border-[#121212] neo-shadow-hover cursor-pointer"
+                className="px-4 py-2 bg-[#CC0000] text-white font-mono font-bold text-xs uppercase rounded-lg border-2 border-[#990000] hover:bg-[#E60000] cursor-pointer"
               >
-                Retry Connection
+                Re-initialize Channel
               </button>
             </div>
           ) : (

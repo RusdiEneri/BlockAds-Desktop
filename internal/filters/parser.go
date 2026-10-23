@@ -20,9 +20,10 @@ const (
 type Format string
 
 const (
-	FormatAuto  Format = "auto"
-	FormatHosts Format = "hosts"
-	FormatPlain Format = "plain"
+	FormatAuto    Format = "auto"
+	FormatHosts   Format = "hosts"
+	FormatPlain   Format = "plain"
+	FormatAdblock Format = "adblock"
 )
 
 // ParsedRule represents a single parsed filtering directive.
@@ -133,6 +134,72 @@ func validateDomainSyntax(raw string) (string, string) {
 	return d, ""
 }
 
+// parseAdblockRule parses an Adblock-style rule (e.g. ||domain.com^ or @@||domain.com^).
+// It returns the domain, action, whether it should be skipped (e.g. cosmetic, URL path, comments),
+// and any warning reason.
+func parseAdblockRule(raw string) (domain string, action Action, skipped bool, reason string) {
+	s := strings.TrimSpace(raw)
+	if s == "" {
+		return "", ActionPass, true, ""
+	}
+
+	// Non-DNS adblock rules (element hiding / cosmetic filters)
+	if strings.HasPrefix(s, "##") || strings.HasPrefix(s, "#?#") || strings.HasPrefix(s, "#@#") ||
+		strings.Contains(s, "##") || strings.Contains(s, "#?#") || strings.Contains(s, "#@#") ||
+		strings.Contains(s, "$$") {
+		return "", ActionPass, true, ""
+	}
+
+	// Determine action
+	action = ActionBlock
+	if strings.HasPrefix(s, "@@||") {
+		action = ActionAllow
+		s = s[4:]
+	} else if strings.HasPrefix(s, "@@") {
+		action = ActionAllow
+		s = s[2:]
+	} else if strings.HasPrefix(s, "||") {
+		action = ActionBlock
+		s = s[2:]
+	}
+
+	// Handle modifiers after $
+	if idx := strings.Index(s, "$"); idx != -1 {
+		modifier := s[idx+1:]
+		if strings.Contains(modifier, "badfilter") {
+			return "", ActionPass, true, ""
+		}
+		s = s[:idx]
+	}
+
+	// Handle separator ^
+	if idx := strings.Index(s, "^"); idx != -1 {
+		remainder := s[idx+1:]
+		if len(remainder) > 0 {
+			// URL path rule, e.g. ||example.com^/path
+			return "", ActionPass, true, ""
+		}
+		s = s[:idx]
+	}
+
+	// If contains URL path or wildcard, DNS cannot filter path or wildcards
+	if strings.Contains(s, "/") || strings.Contains(s, "*") || strings.Contains(s, "://") {
+		return "", ActionPass, true, ""
+	}
+
+	cleaned := strings.ToLower(strings.TrimSuffix(strings.TrimSpace(s), "."))
+	if cleaned == "" || isIgnoredHostname(cleaned) {
+		return "", ActionPass, true, ""
+	}
+
+	validDomain, warningReason := validateDomainSyntax(cleaned)
+	if warningReason != "" {
+		return "", ActionPass, false, warningReason
+	}
+
+	return validDomain, action, false, ""
+}
+
 // ParseFilterList parses an io.Reader according to the requested or auto-detected format.
 func ParseFilterList(r io.Reader, format Format) (*ParseResult, error) {
 	scanner := bufio.NewScanner(r)
@@ -153,17 +220,21 @@ func ParseFilterList(r io.Reader, format Format) (*ParseResult, error) {
 
 		// Check for adblock cosmetic rules starting with ##, #?#, #@# before standard comment check
 		if strings.HasPrefix(trimmed, "##") || strings.HasPrefix(trimmed, "#?#") || strings.HasPrefix(trimmed, "#@#") {
-			result.Warnings = append(result.Warnings, ParseWarning{
-				Line:    lineNum,
-				Content: rawLine,
-				Reason:  "unsupported cosmetic filter syntax",
-			})
-			result.Stats.WarningCount++
+			if format == FormatPlain {
+				result.Warnings = append(result.Warnings, ParseWarning{
+					Line:    lineNum,
+					Content: rawLine,
+					Reason:  "unsupported cosmetic filter syntax",
+				})
+				result.Stats.WarningCount++
+			} else {
+				result.Stats.SkippedCount++
+			}
 			continue
 		}
 
-		// Ignore blank lines and comment lines
-		if trimmed == "" || strings.HasPrefix(trimmed, "#") || strings.HasPrefix(trimmed, "!") {
+		// Ignore blank lines, comment lines, and adblock section headers
+		if trimmed == "" || strings.HasPrefix(trimmed, "#") || strings.HasPrefix(trimmed, "!") || strings.HasPrefix(trimmed, "[") {
 			result.Stats.SkippedCount++
 			continue
 		}
@@ -194,6 +265,8 @@ func ParseFilterList(r io.Reader, format Format) (*ParseResult, error) {
 			first := fields[0]
 			if net.ParseIP(first) != nil || first == "0.0.0.0" || first == "127.0.0.1" || first == "::1" {
 				activeFormat = FormatHosts
+			} else if strings.HasPrefix(trimmed, "||") || strings.HasPrefix(trimmed, "@@||") || strings.HasPrefix(trimmed, "@@") || strings.Contains(trimmed, "^") {
+				activeFormat = FormatAdblock
 			} else {
 				activeFormat = FormatPlain
 			}
@@ -248,12 +321,13 @@ func ParseFilterList(r io.Reader, format Format) (*ParseResult, error) {
 					continue
 				}
 
-				if _, exists := seen[validDomain]; exists {
+				ruleKey := validDomain + ":" + string(ActionBlock)
+				if _, exists := seen[ruleKey]; exists {
 					result.Stats.DuplicateCount++
 					continue
 				}
 
-				seen[validDomain] = struct{}{}
+				seen[ruleKey] = struct{}{}
 				result.Rules = append(result.Rules, ParsedRule{
 					Domain:  validDomain,
 					Action:  ActionBlock,
@@ -263,6 +337,37 @@ func ParseFilterList(r io.Reader, format Format) (*ParseResult, error) {
 				})
 				result.Stats.AcceptedCount++
 			}
+		} else if activeFormat == FormatAdblock {
+			validDomain, ruleAction, skipped, reason := parseAdblockRule(trimmed)
+			if skipped {
+				result.Stats.SkippedCount++
+				continue
+			}
+			if reason != "" {
+				result.Warnings = append(result.Warnings, ParseWarning{
+					Line:    lineNum,
+					Content: rawLine,
+					Reason:  reason,
+				})
+				result.Stats.WarningCount++
+				continue
+			}
+
+			ruleKey := validDomain + ":" + string(ruleAction)
+			if _, exists := seen[ruleKey]; exists {
+				result.Stats.DuplicateCount++
+				continue
+			}
+
+			seen[ruleKey] = struct{}{}
+			result.Rules = append(result.Rules, ParsedRule{
+				Domain:  validDomain,
+				Action:  ruleAction,
+				Source:  "adblock",
+				Line:    lineNum,
+				Enabled: true,
+			})
+			result.Stats.AcceptedCount++
 		} else {
 			// FormatPlain: one domain per line
 			candidate := fields[0]
@@ -293,12 +398,13 @@ func ParseFilterList(r io.Reader, format Format) (*ParseResult, error) {
 				continue
 			}
 
-			if _, exists := seen[validDomain]; exists {
+			ruleKey := validDomain + ":" + string(ActionBlock)
+			if _, exists := seen[ruleKey]; exists {
 				result.Stats.DuplicateCount++
 				continue
 			}
 
-			seen[validDomain] = struct{}{}
+			seen[ruleKey] = struct{}{}
 			result.Rules = append(result.Rules, ParsedRule{
 				Domain:  validDomain,
 				Action:  ActionBlock,

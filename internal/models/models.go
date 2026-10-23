@@ -28,6 +28,22 @@ type ProtectionStatus struct {
 	Message     string `json:"message"`
 }
 
+// TelemetryStats encapsulates real-time DNS engine health and throughput metrics.
+type TelemetryStats struct {
+	QueriesPerSec     float64 `json:"queriesPerSec"`
+	PeakQueriesPerSec float64 `json:"peakQueriesPerSec"`
+	CacheHitRate      float64 `json:"cacheHitRate"`
+	CachedEntries     int     `json:"cachedEntries"`
+	MedianLatencyMs   float64 `json:"medianLatencyMs"`
+	BlockedPercent    float64 `json:"blockedPercent"`
+	TotalAnswers      int64   `json:"totalAnswers"`
+	TotalBlocked      int64   `json:"totalBlocked"`
+	ResolverLoad      float64 `json:"resolverLoad"`
+	MemoryResidentMB  float64 `json:"memoryResidentMB"`
+	UptimeSeconds     int64   `json:"uptimeSeconds"`
+	EngineVersion     string  `json:"engineVersion"`
+}
+
 // QueryLogEntry models a single DNS resolution record.
 type QueryLogEntry struct {
 	ID                string `json:"id"`

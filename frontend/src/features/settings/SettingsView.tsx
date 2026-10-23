@@ -126,26 +126,28 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
     <div className="space-y-6">
       {/* Page Header */}
       <div>
-        <h1 className="text-xl font-black uppercase tracking-wider text-[#121212]">
-          Settings & Upstream Configuration
-        </h1>
-        <p className="text-xs text-[#4B5563] mt-0.5">
+        <div className="flex items-center gap-2">
+          <span className="text-[#33FF00] font-['VT323',monospace] text-3xl font-bold glow-green">
+            {'>'} CONFIGURATION // UPSTREAM & SYSTEM PREFERENCES
+          </span>
+        </div>
+        <p className="text-xs text-[#D2B48C] font-mono mt-0.5">
           Encrypted DNS Transport, Cache Allocation & Windows System Preferences
         </p>
       </div>
 
       {/* Scope Disclaimer */}
-      <div className="bg-[#FEF3C7] neo-border p-3.5 flex items-start gap-3">
-        <Info className="w-5 h-5 text-[#92400E] shrink-0 mt-0.5" />
-        <div className="text-xs text-[#92400E]">
-          <span className="font-bold">Milestone 1 Scope Discipline: </span>
+      <div className="bg-[#2B200A] border-2 border-[#5E430D] rounded-lg p-3.5 flex items-start gap-3 shadow-[0_0_12px_rgba(255,176,0,0.15)]">
+        <Info className="w-5 h-5 text-[#FFB000] shrink-0 mt-0.5" />
+        <div className="text-xs text-[#E8E0D0] font-mono leading-relaxed">
+          <span className="font-bold text-[#FFB000]">OPERATIONAL BOUNDARY DISCIPLINE: </span>
           Only upstream DoH parameters are actively validated by the Go backend in this release. System adapter hooks and daemon autostart switches are disabled and clearly tagged with their planned milestones to guarantee zero unintended network mutations.
         </div>
       </div>
 
       {/* Upstream DoH Section (Active) */}
       <NeoCard
-        title="Encrypted DNS Upstream (DoH)"
+        title="ENCRYPTED DNS UPSTREAM (DOH)"
         subtitle="RFC 8484 DNS-over-HTTPS resolver endpoint"
         badge={
           <NeoBadge variant="success" size="sm">
@@ -155,8 +157,8 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
       >
         <form onSubmit={handleSaveUpstream} className="space-y-4">
           <div>
-            <label htmlFor="doh-endpoint-input" className="block text-xs font-bold uppercase tracking-wider text-[#121212] mb-1">
-              DoH Endpoint URL <span className="text-[#D9381E]">*</span>
+            <label htmlFor="doh-endpoint-input" className="block text-xs font-mono font-bold uppercase tracking-wider text-[#D2B48C] mb-1">
+              DoH Endpoint URL <span className="text-[#FF5252]">*</span>
             </label>
             <div className="flex items-center gap-2">
               <input
@@ -167,7 +169,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                 value={upstreamUrl}
                 onChange={(e) => setUpstreamUrl(e.target.value)}
                 placeholder="https://dns.caliph.dev/dns-query"
-                className="flex-1 text-xs font-mono p-2.5 border-2 border-[#121212] focus:outline-none focus:shadow-[2px_2px_0px_#B38B6D]"
+                className="flex-1 text-xs font-mono p-2.5 rounded-lg border-2 border-[#373E4F] bg-[#14161E] text-[#33FF00] focus:outline-none focus:border-[#33FF00]"
                 required
               />
               <NeoButton
@@ -176,34 +178,34 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                 size="sm"
                 isLoading={isSaving}
               >
-                Save Upstream
+                SAVE UPSTREAM
               </NeoButton>
             </div>
-            <p className="text-[11px] text-[#6B7280] mt-1.5">
-              Must use encrypted HTTPS scheme and specify a path (typically <code className="font-mono">/dns-query</code>).
+            <p className="text-[11px] text-[#A0AAB8] font-mono mt-1.5">
+              Must use encrypted HTTPS scheme and specify a path (typically <code className="font-mono text-[#33FF00]">/dns-query</code>).
             </p>
           </div>
 
           {statusMessage && (
             <div
-              className={`p-3 border-2 text-xs flex items-center gap-2 font-medium ${
+              className={`p-3 rounded-lg border-2 text-xs flex items-center gap-2 font-mono ${
                 statusMessage.type === 'success'
-                  ? 'bg-[#EBFBEE] text-[#1E7E34] border-[#1E7E34]'
-                  : 'bg-[#FEECEB] text-[#D9381E] border-[#D9381E]'
+                  ? 'bg-[#102B15] text-[#33FF00] border-[#1E5C2A]'
+                  : 'bg-[#2D1212] text-[#FF5252] border-[#612323]'
               }`}
             >
               {statusMessage.type === 'success' ? (
-                <CheckCircle2 className="w-4 h-4 shrink-0" />
+                <CheckCircle2 className="w-4 h-4 shrink-0 text-[#33FF00]" />
               ) : (
-                <AlertCircle className="w-4 h-4 shrink-0" />
+                <AlertCircle className="w-4 h-4 shrink-0 text-[#FF5252]" />
               )}
               <span>{statusMessage.text}</span>
             </div>
           )}
 
           {/* Upstream Presets */}
-          <div className="pt-2 border-t border-[#EBE7DE]">
-            <div className="text-[11px] font-bold uppercase tracking-wider text-[#6B7280] mb-2">
+          <div className="pt-2 border-t-2 border-[#2B313E]">
+            <div className="text-[11px] font-mono font-bold uppercase tracking-wider text-[#D2B48C] mb-2">
               Tested Public Resolvers:
             </div>
             <div className="flex flex-wrap gap-2">
@@ -212,10 +214,10 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                   key={preset.name}
                   type="button"
                   onClick={() => setUpstreamUrl(preset.url)}
-                  className={`px-2.5 py-1 text-xs font-medium border-2 transition-all ${
+                  className={`px-3 py-1 text-xs font-mono font-medium rounded-lg border transition-all cursor-pointer ${
                     upstreamUrl === preset.url
-                      ? 'bg-[#B38B6D] text-white border-[#121212] shadow-[1px_1px_0px_#121212]'
-                      : 'bg-white text-[#121212] border-[#121212] hover:bg-[#F5F1E8]'
+                      ? 'bg-[#33FF00] text-[#14161E] border-[#29CC00] shadow-[0_0_8px_rgba(51,255,0,0.3)]'
+                      : 'bg-[#181B23] text-[#A0AAB8] border-[#3F4657] hover:text-[#E8E0D0] hover:border-[#D2B48C]'
                   }`}
                 >
                   {preset.name}
@@ -238,19 +240,19 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
       >
         <div className="space-y-4">
           {/* Scope notice */}
-          <div className="bg-[#F5F1E8] p-3 border border-[#D1CBC0] text-xs text-[#4B5563] flex items-start gap-2.5">
-            <Info className="w-4 h-4 text-[#B38B6D] shrink-0 mt-0.5" />
+          <div className="bg-[#151820] p-3 border border-[#D2B48C]/30 rounded text-xs text-[#D2B48C] font-mono flex items-start gap-2.5">
+            <Info className="w-4 h-4 text-[#FFB000] shrink-0 mt-0.5" />
             <div className="leading-relaxed">
-              <span className="font-bold text-[#121212]">DNS-Only Policy Enforcement: </span>
+              <span className="font-bold text-[#33FF00]">&gt; DNS-Only Policy Enforcement: </span>
               SafeSearch rewrites DNS queries for supported search and video hostnames to their official canonical safe search targets (e.g.{' '}
-              <code className="font-mono text-[#121212] bg-white px-1 border border-[#D1CBC0]">forcesafesearch.google.com</code>).
+              <code className="font-mono text-[#33FF00] bg-[#1B1E26] px-1 border border-[#33FF00]/30 rounded">forcesafesearch.google.com</code>).
               It strictly affects DNS resolution and does NOT decrypt, inspect, or intercept HTTPS content, nor does it replace operating system, account, or browser-level controls.
             </div>
           </div>
 
           {safeSearchError && (
-            <div className="p-3 bg-[#FEECEB] border-2 border-[#D9381E] text-xs text-[#D9381E] flex items-center gap-2 font-medium">
-              <AlertCircle className="w-4 h-4 shrink-0" />
+            <div className="p-3 bg-[#2D1212] border-2 border-[#802020] text-xs text-[#FF4D4D] rounded-lg flex items-center gap-2 font-mono">
+              <AlertCircle className="w-4 h-4 shrink-0 text-[#FF4D4D]" />
               <span>{safeSearchError}</span>
             </div>
           )}
@@ -265,18 +267,18 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
               return (
                 <div
                   key={provider.id}
-                  className={`p-3.5 border-2 transition-all ${
+                  className={`p-3.5 border rounded transition-all ${
                     isUnsupported
-                      ? 'bg-[#F9F7F4] border-[#D1CBC0] opacity-85'
+                      ? 'bg-[#151820] border-[#3F4657]/30 opacity-75'
                       : isActive
-                      ? 'bg-white border-[#121212] shadow-[2px_2px_0px_#1E7E34]'
-                      : 'bg-white border-[#D1CBC0]'
+                      ? 'bg-[#1B1E26] border-[#33FF00]/40 shadow-[0_0_10px_rgba(51,255,0,0.15)]'
+                      : 'bg-[#1B1E26] border-[#3F4657]'
                   }`}
                 >
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 font-mono">
                     <div className="space-y-1">
                       <div className="flex items-center gap-2 flex-wrap">
-                        <span className="font-black text-xs uppercase tracking-wider text-[#121212]">
+                        <span className="font-bold text-xs uppercase tracking-wider text-[#E8E0D0]">
                           {provider.name}
                         </span>
                         {isActive && (
@@ -302,18 +304,18 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                       </div>
 
                       {provider.target ? (
-                        <div className="text-xs text-[#4B5563] flex flex-wrap items-center gap-2">
-                          <span className="font-bold text-[11px] text-[#6B7280]">Target:</span>
-                          <code className="font-mono text-xs text-[#121212] bg-[#EBE7DE] px-1.5 py-0.5 border border-[#D1CBC0]">
+                        <div className="text-xs text-[#A0AAB8] flex flex-wrap items-center gap-2">
+                          <span className="font-bold text-[11px] text-[#D2B48C]">Target:</span>
+                          <code className="font-mono text-xs text-[#33FF00] bg-[#151820] px-1.5 py-0.5 border border-[#33FF00]/30 rounded">
                             {provider.target}
                           </code>
-                          <span className="text-[#9CA3AF]">|</span>
-                          <span className="text-[11px] text-[#6B7280]">
+                          <span className="text-[#A0AAB8]/50">|</span>
+                          <span className="text-[11px] text-[#A0AAB8]">
                             {provider.domains?.length || 0} hostnames covered
                           </span>
                         </div>
                       ) : (
-                        <div className="text-xs text-[#92400E] font-medium">
+                        <div className="text-xs text-[#FFB000] font-mono">
                           {provider.warning || 'Provider does not support canonical DNS CNAME rewriting.'}
                         </div>
                       )}
@@ -326,7 +328,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                           target="_blank"
                           rel="noopener noreferrer"
                           title="View official technical documentation"
-                          className="text-xs font-semibold text-[#B38B6D] hover:text-[#121212] flex items-center gap-1 border-b border-[#B38B6D]"
+                          className="text-xs font-semibold text-[#D2B48C] hover:text-[#33FF00] flex items-center gap-1 font-mono"
                         >
                           <span>Docs</span>
                           <ExternalLink className="w-3 h-3" />
@@ -337,19 +339,19 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                         type="button"
                         disabled={isUnsupported || togglingProvider === provider.id}
                         onClick={() => handleToggleProvider(provider.id, !provider.enabled)}
-                        className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer border-2 border-[#121212] transition-colors duration-200 ease-in-out focus:outline-none ${
+                        className={`relative inline-flex h-5 w-10 shrink-0 cursor-pointer border rounded-full transition-colors duration-200 ease-in-out focus-visible:outline-2 focus-visible:outline-[#33FF00] ${
                           isUnsupported
-                            ? 'bg-[#E5E0D8] cursor-not-allowed opacity-60'
+                            ? 'bg-[#151820] border-[#3F4657]/30 opacity-50 cursor-not-allowed'
                             : provider.enabled
-                            ? 'bg-[#1E7E34]'
-                            : 'bg-[#D1CBC0]'
+                            ? 'bg-[#33FF00] border-[#33FF00]'
+                            : 'bg-[#151820] border-[#3F4657]'
                         }`}
                         aria-pressed={provider.enabled}
                         aria-label={`Toggle SafeSearch for ${provider.name}`}
                       >
                         <span
-                          className={`pointer-events-none inline-block h-4 w-4 transform border border-[#121212] bg-white shadow-sm transition duration-200 ease-in-out ${
-                            provider.enabled ? 'translate-x-5' : 'translate-x-0.5'
+                          className={`pointer-events-none inline-block h-3.5 w-3.5 transform rounded-full transition duration-200 ease-in-out ${
+                            provider.enabled ? 'translate-x-5 bg-[#14161E]' : 'translate-x-0.5 bg-[#D2B48C]'
                           } mt-0.5`}
                         />
                       </button>
@@ -358,7 +360,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
 
                   {/* Diagnostic Warning Note */}
                   {provider.warning && isUnsupported && (
-                    <div className="mt-2.5 text-[11px] text-[#92400E] bg-[#FEF3C7] p-2.5 border border-[#D1CBC0] leading-relaxed">
+                    <div className="mt-2.5 text-[11px] text-[#FFB000] bg-[#2A2318] p-2.5 border border-[#FFB000]/30 rounded font-mono leading-relaxed">
                       <span className="font-bold">Provider Architecture Limitation: </span>
                       {provider.warning}
                     </div>
@@ -380,11 +382,11 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
           </NeoBadge>
         }
       >
-        <div className="space-y-4 opacity-70">
+        <div className="space-y-4 opacity-75 font-mono">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label htmlFor="cache-size-input" className="block text-xs font-bold uppercase tracking-wider text-[#121212] mb-1">
-                In-Memory Cache Size
+              <label htmlFor="cache-size-input" className="block text-xs font-bold uppercase tracking-wider text-[#D2B48C] mb-1">
+                &gt; In-Memory Cache Size
               </label>
               <input
                 id="cache-size-input"
@@ -393,16 +395,16 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                 type="text"
                 value="4,096 entries (LRU)"
                 disabled
-                className="w-full text-xs font-mono p-2 border-2 border-[#D1CBC0] bg-[#EBE7DE] cursor-not-allowed"
+                className="w-full text-xs font-mono p-2 border border-[#3F4657] bg-[#151820] text-[#A0AAB8] rounded cursor-not-allowed"
               />
-              <span className="text-[10px] text-[#6B7280] mt-0.5 block">
+              <span className="text-[10px] text-[#A0AAB8] mt-0.5 block">
                 Caches positive and negative DNS replies within TTL limits.
               </span>
             </div>
 
             <div>
-              <label htmlFor="bootstrap-dns-input" className="block text-xs font-bold uppercase tracking-wider text-[#121212] mb-1">
-                Bootstrap DNS Resolver
+              <label htmlFor="bootstrap-dns-input" className="block text-xs font-bold uppercase tracking-wider text-[#D2B48C] mb-1">
+                &gt; Bootstrap DNS Resolver
               </label>
               <input
                 id="bootstrap-dns-input"
@@ -423,9 +425,9 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                     : '8.8.8.8 (Google Anycast)'
                 }
                 disabled
-                className="w-full text-xs font-mono p-2 border-2 border-[#D1CBC0] bg-[#EBE7DE] cursor-not-allowed"
+                className="w-full text-xs font-mono p-2 border border-[#3F4657] bg-[#151820] text-[#A0AAB8] rounded cursor-not-allowed"
               />
-              <span className="text-[10px] text-[#6B7280] mt-0.5 block">
+              <span className="text-[10px] text-[#A0AAB8] mt-0.5 block">
                 Used strictly to resolve upstream DoH hostname without causing circular DNS loops.
               </span>
             </div>
@@ -450,17 +452,17 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
           )
         }
       >
-        <div className="space-y-4">
-          <div className="flex items-center justify-between p-3 bg-white neo-border">
+        <div className="space-y-4 font-mono">
+          <div className="flex items-center justify-between p-3 bg-[#1B1E26] border border-[#3F4657] rounded">
             <div className="space-y-0.5">
-              <div className="text-xs font-bold text-[#121212]">
-                Start BlockAds Desktop on User Login
+              <div className="text-xs font-bold text-[#E8E0D0]">
+                &gt; Start BlockAds Desktop on User Login
               </div>
-              <p className="text-[11px] text-[#6B7280]">
+              <p className="text-[11px] text-[#A0AAB8]">
                 Registers application launch under Current User Run key (HKCU). Does not require administrator rights.
               </p>
               {startupStatus?.message && (
-                <p className="text-[10px] text-[#1B4F72] font-mono mt-1">
+                <p className="text-[10px] text-[#33FF00] font-mono mt-1">
                   {startupStatus.message}
                 </p>
               )}
@@ -476,10 +478,10 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                 onChange={(e) => handleToggleStartup(e.target.checked)}
                 className="sr-only peer"
               />
-              <div className="w-11 h-6 bg-[#EBE7DE] border-2 border-[#121212] peer-checked:bg-[#1E7E34] transition-colors relative">
+              <div className="w-8 h-4 bg-[#151820] border border-[#3F4657] rounded-full peer-checked:bg-[#33FF00] transition-colors relative">
                 <div
-                  className={`w-4 h-4 bg-white border border-[#121212] transition-transform duration-75 absolute top-0.5 left-0.5 ${
-                    startupStatus?.enabled ? 'translate-x-5' : 'translate-x-0'
+                  className={`w-3 h-3 bg-[#D2B48C] peer-checked:bg-[#14161E] rounded-full transition-transform duration-75 absolute top-0.5 left-0.5 ${
+                    startupStatus?.enabled ? 'translate-x-3.5' : 'translate-x-0'
                   }`}
                 />
               </div>
@@ -487,14 +489,14 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
           </div>
 
           {startupError && (
-            <div className="p-2.5 bg-[#FEECEB] border border-[#D9381E] text-xs text-[#D9381E] flex items-center gap-2">
-              <AlertCircle className="w-4 h-4 shrink-0" />
+            <div className="p-2.5 bg-[#2D1212] border-2 border-[#802020] rounded-lg text-xs text-[#FF4D4D] flex items-center gap-2 font-mono">
+              <AlertCircle className="w-4 h-4 shrink-0 text-[#FF4D4D]" />
               <span>{startupError}</span>
             </div>
           )}
 
-          <div className="p-3 bg-[#EBF5FB] neo-border text-xs text-[#1B4F72] leading-relaxed">
-            <span className="font-bold">Scope Disclaimer: </span>
+          <div className="p-3 bg-[#151820] border border-[#33FF00]/30 rounded text-xs text-[#D2B48C] leading-relaxed">
+            <span className="font-bold text-[#33FF00]">&gt; Scope Disclaimer: </span>
             Start with Windows launches the desktop application interface. Full system-wide DNS adapter interception and background Windows Service mode will be delivered in Milestones 05 and 06.
           </div>
         </div>
@@ -516,31 +518,31 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
           )
         }
       >
-        <div className="space-y-3">
+        <div className="space-y-3 font-mono">
           <div>
-            <label htmlFor="data-dir-display" className="block text-xs font-bold uppercase tracking-wider text-[#121212] mb-1">
-              Active Data Directory
+            <label htmlFor="data-dir-display" className="block text-xs font-bold uppercase tracking-wider text-[#D2B48C] mb-1">
+              &gt; Active Data Directory
             </label>
             <input
               id="data-dir-display"
               type="text"
               readOnly
               value={appInfo?.dataDir || 'Resolving data directory...'}
-              className="w-full text-xs font-mono p-2 border-2 border-[#121212] bg-[#F5F1E8]"
+              className="w-full text-xs font-mono p-2 border border-[#33FF00]/30 bg-[#151820] text-[#33FF00] rounded"
             />
-            <span className="text-[10px] text-[#6B7280] mt-1 block">
+            <span className="text-[10px] text-[#A0AAB8] mt-1 block">
               Contains local SQLite database (<code>blockads.db</code>), WAL logs, filter snapshots, and SafeSearch settings.
             </span>
           </div>
 
-          <div className="text-xs text-[#4B5563] leading-relaxed p-3 bg-white neo-border">
+          <div className="text-xs text-[#E8E0D0] leading-relaxed p-3 bg-[#1B1E26] border border-[#3F4657] rounded">
             {appInfo?.isPortable ? (
               <span>
-                <strong>Portable Mode Active:</strong> All user state is isolated inside this folder's <code>data/</code> subdirectory. You can safely copy or move this entire directory to any writable location or USB drive.
+                <strong className="text-[#33FF00]">Portable Mode Active:</strong> All user state is isolated inside this folder's <code>data/</code> subdirectory. You can safely copy or move this entire directory to any writable location or USB drive.
               </span>
             ) : (
               <span>
-                <strong>Installed Mode Active:</strong> Persistent data is safely stored under your Windows user profile (<code>%LOCALAPPDATA%\BlockAds Desktop</code>). Application updates and uninstallation preserve your database and rules by default.
+                <strong className="text-[#33FF00]">Installed Mode Active:</strong> Persistent data is safely stored under your Windows user profile (<code>%LOCALAPPDATA%\BlockAds Desktop</code>). Application updates and uninstallation preserve your database and rules by default.
               </span>
             )}
           </div>
@@ -557,13 +559,13 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
           </NeoBadge>
         }
       >
-        <div className="space-y-3 opacity-70">
-          <div className="flex items-center justify-between p-2.5 bg-[#F5F1E8] border border-[#D1CBC0]">
+        <div className="space-y-3 opacity-75 font-mono">
+          <div className="flex items-center justify-between p-2.5 bg-[#1B1E26] border border-[#3F4657] rounded">
             <div>
-              <div className="text-xs font-bold text-[#121212]">
-                Automatic Network Adapter DNS Redirection
+              <div className="text-xs font-bold text-[#E8E0D0]">
+                &gt; Automatic Network Adapter DNS Redirection
               </div>
-              <div className="text-[11px] text-[#6B7280]">
+              <div className="text-[11px] text-[#A0AAB8]">
                 Points active Windows network adapters to 127.0.0.1 on start with crash rollback.
               </div>
             </div>
@@ -572,12 +574,12 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
             </NeoBadge>
           </div>
 
-          <div className="flex items-center justify-between p-2.5 bg-[#F5F1E8] border border-[#D1CBC0]">
+          <div className="flex items-center justify-between p-2.5 bg-[#1B1E26] border border-[#3F4657] rounded">
             <div>
-              <div className="text-xs font-bold text-[#121212]">
-                Windows Service Integration
+              <div className="text-xs font-bold text-[#E8E0D0]">
+                &gt; Windows Service Integration
               </div>
-              <div className="text-[11px] text-[#6B7280]">
+              <div className="text-[11px] text-[#A0AAB8]">
                 Runs the Go DNS engine as a background service communicating with UI via Named Pipes.
               </div>
             </div>

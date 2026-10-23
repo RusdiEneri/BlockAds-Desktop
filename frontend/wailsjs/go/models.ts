@@ -353,6 +353,40 @@ export namespace models {
 	        this.message = source["message"];
 	    }
 	}
+	export class TelemetryStats {
+	    queriesPerSec: number;
+	    peakQueriesPerSec: number;
+	    cacheHitRate: number;
+	    cachedEntries: number;
+	    medianLatencyMs: number;
+	    blockedPercent: number;
+	    totalAnswers: number;
+	    totalBlocked: number;
+	    resolverLoad: number;
+	    memoryResidentMB: number;
+	    uptimeSeconds: number;
+	    engineVersion: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new TelemetryStats(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.queriesPerSec = source["queriesPerSec"];
+	        this.peakQueriesPerSec = source["peakQueriesPerSec"];
+	        this.cacheHitRate = source["cacheHitRate"];
+	        this.cachedEntries = source["cachedEntries"];
+	        this.medianLatencyMs = source["medianLatencyMs"];
+	        this.blockedPercent = source["blockedPercent"];
+	        this.totalAnswers = source["totalAnswers"];
+	        this.totalBlocked = source["totalBlocked"];
+	        this.resolverLoad = source["resolverLoad"];
+	        this.memoryResidentMB = source["memoryResidentMB"];
+	        this.uptimeSeconds = source["uptimeSeconds"];
+	        this.engineVersion = source["engineVersion"];
+	    }
+	}
 
 }
 

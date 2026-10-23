@@ -78,6 +78,10 @@ export function GetStartupStatus() {
   return window['go']['main']['App']['GetStartupStatus']();
 }
 
+export function GetTelemetryStats() {
+  return window['go']['main']['App']['GetTelemetryStats']();
+}
+
 export function Logger() {
   return window['go']['main']['App']['Logger']();
 }
@@ -122,6 +126,10 @@ export function SetStartWithWindows(arg1) {
   return window['go']['main']['App']['SetStartWithWindows'](arg1);
 }
 
+export function SetSysDNSManager(arg1) {
+  return window['go']['main']['App']['SetSysDNSManager'](arg1);
+}
+
 export function SimulateQuery(arg1, arg2) {
   return window['go']['main']['App']['SimulateQuery'](arg1, arg2);
 }
@@ -132,6 +140,10 @@ export function Storage() {
 
 export function SubscribeCatalogFilter(arg1) {
   return window['go']['main']['App']['SubscribeCatalogFilter'](arg1);
+}
+
+export function SysDNSManager() {
+  return window['go']['main']['App']['SysDNSManager']();
 }
 
 export function ToggleCustomRule(arg1, arg2) {

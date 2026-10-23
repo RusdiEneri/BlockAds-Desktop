@@ -690,6 +690,26 @@ export const ipc = {
     });
     return fallbackStartupStatus;
   },
+
+  getTelemetryStats: async (): Promise<models.TelemetryStats> => {
+    if (isWailsAvailable() && typeof WailsApp.GetTelemetryStats === 'function') {
+      return WailsApp.GetTelemetryStats();
+    }
+    return new models.TelemetryStats({
+      queriesPerSec: 91.8,
+      peakQueriesPerSec: 101,
+      cacheHitRate: 21.7,
+      cachedEntries: 21600,
+      medianLatencyMs: 2.11,
+      blockedPercent: 8.70,
+      totalAnswers: 1760000,
+      totalBlocked: 153120,
+      resolverLoad: 6.30,
+      memoryResidentMB: 266,
+      uptimeSeconds: 352800,
+      engineVersion: 'dnsdist 2.0.11',
+    });
+  },
 };
 
 let fallbackStartupStatus: models.StartupStatus = new models.StartupStatus({

@@ -209,6 +209,111 @@ func TestParseFilterList_EmptyInput(t *testing.T) {
 	}
 }
 
+func TestParseFilterList_AdblockFormat(t *testing.T) {
+	input := `[Adblock Plus 2.0]
+! Title: Test Adblock List
+! Version: 1.0.0
+||ads.example.com^
+||analytics.example.org^$third-party
+@@||safe.example.com^
+||ignored.example.com^$badfilter
+##.ad-banner
+example.com##.sponsor
+site.org#@#.allowed-banner
+||example.com/banner.gif^
+||localhost^
+||127.0.0.1^
+||ADS.EXAMPLE.COM.^
+||sub.tracker.net^
+`
+	res, err := filters.ParseFilterList(strings.NewReader(input), filters.FormatAdblock)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	// Expected accepted:
+	// 1. ads.example.com (BLOCK)
+	// 2. analytics.example.org (BLOCK)
+	// 3. safe.example.com (ALLOW)
+	// 4. sub.tracker.net (BLOCK)
+	// ads.example.com uppercase is duplicate
+	if res.Stats.AcceptedCount != 4 {
+		t.Fatalf("expected 4 accepted rules, got %d (rules: %+v)", res.Stats.AcceptedCount, res.Rules)
+	}
+	if res.Stats.DuplicateCount != 1 {
+		t.Errorf("expected 1 duplicate rule, got %d", res.Stats.DuplicateCount)
+	}
+	if res.Stats.WarningCount != 0 {
+		t.Errorf("expected 0 warnings, got %d (%+v)", res.Stats.WarningCount, res.Warnings)
+	}
+
+	ruleMap := make(map[string]filters.ParsedRule)
+	for _, r := range res.Rules {
+		ruleMap[r.Domain] = r
+	}
+
+	if r, ok := ruleMap["ads.example.com"]; !ok || r.Action != filters.ActionBlock {
+		t.Errorf("expected ads.example.com BLOCK, got %+v", r)
+	}
+	if r, ok := ruleMap["analytics.example.org"]; !ok || r.Action != filters.ActionBlock {
+		t.Errorf("expected analytics.example.org BLOCK, got %+v", r)
+	}
+	if r, ok := ruleMap["safe.example.com"]; !ok || r.Action != filters.ActionAllow {
+		t.Errorf("expected safe.example.com ALLOW, got %+v", r)
+	}
+	if r, ok := ruleMap["sub.tracker.net"]; !ok || r.Action != filters.ActionBlock {
+		t.Errorf("expected sub.tracker.net BLOCK, got %+v", r)
+	}
+
+	// Verify rules integrate with Matcher correctly
+	matcherRules := make([]filters.Rule, len(res.Rules))
+	for i, pr := range res.Rules {
+		matcherRules[i] = filters.Rule{
+			Domain:  pr.Domain,
+			Action:  pr.Action,
+			Enabled: pr.Enabled,
+			Source:  pr.Source,
+		}
+	}
+	m := filters.NewMatcher()
+	m.BuildFromRules(matcherRules)
+
+	if m.Match("ads.example.com").Action != filters.ActionBlock {
+		t.Errorf("expected ads.example.com to match ActionBlock")
+	}
+	if m.Match("sub.ads.example.com").Action != filters.ActionBlock {
+		t.Errorf("expected sub.ads.example.com to match ActionBlock")
+	}
+	if m.Match("safe.example.com").Action != filters.ActionAllow {
+		t.Errorf("expected safe.example.com to match ActionAllow")
+	}
+	if m.Match("clean.example.com").Action != filters.ActionPass {
+		t.Errorf("expected clean.example.com to match ActionPass")
+	}
+}
+
+func TestParseFilterList_AutoDetectAdblock(t *testing.T) {
+	input := `[Adblock Plus 2.0]
+! HaGeZi style sample
+||evil-tracker.com^
+@@||good-service.com^
+`
+	res, err := filters.ParseFilterList(strings.NewReader(input), filters.FormatAuto)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if res.Stats.AcceptedCount != 2 {
+		t.Fatalf("expected 2 accepted rules, got %d", res.Stats.AcceptedCount)
+	}
+	if res.Rules[0].Domain != "evil-tracker.com" || res.Rules[0].Action != filters.ActionBlock {
+		t.Errorf("rule 0 mismatch: %+v", res.Rules[0])
+	}
+	if res.Rules[1].Domain != "good-service.com" || res.Rules[1].Action != filters.ActionAllow {
+		t.Errorf("rule 1 mismatch: %+v", res.Rules[1])
+	}
+}
+
 func BenchmarkParseFilterList_Large(b *testing.B) {
 	var sb strings.Builder
 	for i := 0; i < 5000; i++ {

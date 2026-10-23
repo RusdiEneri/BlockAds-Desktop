@@ -96,31 +96,31 @@ export const AddFilterModal: React.FC<AddFilterModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs">
-      <div className="bg-[#F5F1E8] neo-border neo-shadow-lg w-full max-w-xl max-h-[90vh] flex flex-col overflow-hidden">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-xs">
+      <div className="bg-[#1B1E26] border-2 border-[#33FF00]/40 rounded-lg shadow-2xl w-full max-w-xl max-h-[90vh] flex flex-col overflow-hidden">
         {/* Modal Header */}
-        <div className="p-4 bg-white neo-border-b flex items-center justify-between">
+        <div className="p-4 bg-[#232733] border-b border-[#33FF00]/30 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <Plus className="w-5 h-5 text-[#121212]" />
-            <h2 className="text-base font-black uppercase tracking-wider text-[#121212]">
+            <Plus className="w-5 h-5 text-[#33FF00]" />
+            <h2 className="text-xl font-bold uppercase tracking-wider text-[#33FF00] font-['VT323'] glow-green">
               Add Filter Subscription from URL
             </h2>
           </div>
           <button
             onClick={onClose}
             aria-label="Close modal"
-            className="p-1 border border-[#121212] bg-[#F5F1E8] hover:bg-white transition-all"
+            className="p-1.5 border border-[#33FF00]/40 bg-[#151820] text-[#D2B48C] hover:text-[#33FF00] hover:border-[#33FF00] rounded transition-all cursor-pointer"
           >
-            <X className="w-4 h-4 text-[#121212]" />
+            <X className="w-4 h-4" />
           </button>
         </div>
 
         {/* Content Body */}
-        <form onSubmit={handleConfirmSubmit} className="p-5 space-y-4 overflow-y-auto flex-1">
+        <form onSubmit={handleConfirmSubmit} className="p-5 space-y-4 overflow-y-auto flex-1 font-mono">
           {/* URL Input with Inspect Button */}
           <div>
-            <label htmlFor="filter-url" className="block text-xs font-bold uppercase tracking-wider text-[#121212] mb-1">
-              Source URL (HTTPS Required)
+            <label htmlFor="filter-url" className="block text-xs font-bold uppercase tracking-wider text-[#D2B48C] mb-1 font-mono">
+              &gt; Source URL (HTTPS Required)
             </label>
             <div className="flex gap-2">
               <input
@@ -132,13 +132,13 @@ export const AddFilterModal: React.FC<AddFilterModalProps> = ({
                   setUrl(e.target.value);
                   setPreview(null);
                 }}
-                className="flex-1 px-3 py-2 text-xs border-2 border-[#121212] bg-white font-mono focus:outline-hidden"
+                className="flex-1 px-3 py-2 text-xs border border-[#33FF00]/30 bg-[#151820] text-[#E8E0D0] placeholder-[#A0AAB8] rounded font-mono focus:border-[#33FF00] focus:outline-hidden"
               />
               <button
                 type="button"
                 onClick={handleInspectURL}
                 disabled={isPreviewing || !url.trim()}
-                className="px-4 py-2 bg-white border-2 border-[#121212] neo-shadow-sm text-xs font-bold text-[#121212] hover:bg-[#F5F1E8] disabled:opacity-50 transition-all flex items-center gap-1.5"
+                className="px-4 py-2 bg-[#232733] border border-[#33FF00]/40 rounded text-xs font-mono font-bold text-[#33FF00] hover:bg-[#33FF00] hover:text-[#14161E] disabled:opacity-50 transition-all flex items-center gap-1.5 cursor-pointer"
               >
                 {isPreviewing ? (
                   <>
@@ -153,29 +153,29 @@ export const AddFilterModal: React.FC<AddFilterModalProps> = ({
                 )}
               </button>
             </div>
-            <span className="text-[10px] text-[#6B7280] mt-1 block">
+            <span className="text-[10px] text-[#A0AAB8] mt-1 block font-mono">
               The engine will validate RFC 9110 HTTPS, enforce SSRF protection, and extract metadata.
             </span>
           </div>
 
           {/* Error Message */}
           {errorMsg && (
-            <div className="p-3 bg-[#FEECEB] border-2 border-[#D9381E] text-xs text-[#D9381E] flex items-start gap-2">
-              <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
+            <div className="p-3 bg-[#2D1212] border-2 border-[#802020] rounded-lg text-xs text-[#FF4D4D] flex items-start gap-2 font-mono">
+              <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5 text-[#FF4D4D]" />
               <span>{errorMsg}</span>
             </div>
           )}
 
           {/* Duplicate Detection Warning */}
           {preview?.isAlreadySubscribed && (
-            <div className="p-3.5 bg-[#FEF9E7] border-2 border-[#B38B6D] space-y-2">
-              <div className="flex items-center gap-2 text-xs font-bold text-[#7D5A38]">
-                <ShieldAlert className="w-4 h-4 text-[#B38B6D]" />
+            <div className="p-3.5 bg-[#2A2318] border border-[#FFB000] rounded space-y-2 font-mono">
+              <div className="flex items-center gap-2 text-xs font-bold text-[#FFB000]">
+                <ShieldAlert className="w-4 h-4 text-[#FFB000]" />
                 <span>Duplicate Subscription Detected</span>
               </div>
-              <p className="text-xs text-[#5D4037] leading-relaxed">
+              <p className="text-xs text-[#D2B48C] leading-relaxed">
                 This exact source URL is already subscribed in your database as{' '}
-                <strong>"{preview.existingSubscription}"</strong>.
+                <strong className="text-[#33FF00]">"{preview.existingSubscription}"</strong>.
               </p>
               {preview.existingId && (
                 <button
@@ -184,7 +184,7 @@ export const AddFilterModal: React.FC<AddFilterModalProps> = ({
                     onClose();
                     onNavigateToSubscription(preview.existingId || '');
                   }}
-                  className="px-3 py-1 bg-white border border-[#B38B6D] text-xs font-bold text-[#7D5A38] hover:bg-[#F5F1E8]"
+                  className="px-3 py-1 bg-[#151820] border border-[#FFB000] text-xs font-bold text-[#FFB000] hover:bg-[#FFB000] hover:text-[#14161E] rounded cursor-pointer"
                 >
                   Locate Existing Subscription
                 </button>
@@ -194,10 +194,10 @@ export const AddFilterModal: React.FC<AddFilterModalProps> = ({
 
           {/* Preview / Metadata Result Fields */}
           {preview && !preview.isAlreadySubscribed && (
-            <div className="p-4 bg-white neo-border space-y-3.5">
+            <div className="p-4 bg-[#232733] border border-[#33FF00]/30 rounded space-y-3.5">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-black uppercase tracking-wider text-[#121212]">
-                  Extracted Metadata & Verification
+                <span className="text-xs font-bold uppercase tracking-wider text-[#33FF00] font-mono">
+                  &gt; Extracted Metadata & Verification
                 </span>
                 <NeoBadge variant="success" size="sm">
                   <CheckCircle2 className="w-3 h-3" />
@@ -207,7 +207,7 @@ export const AddFilterModal: React.FC<AddFilterModalProps> = ({
 
               <div className="grid grid-cols-2 gap-3 text-xs">
                 <div>
-                  <label htmlFor="preview-name" className="block text-[11px] font-bold text-[#6B7280] mb-1">
+                  <label htmlFor="preview-name" className="block text-[11px] font-bold text-[#A0AAB8] mb-1 font-mono">
                     Display Name
                   </label>
                   <input
@@ -215,19 +215,19 @@ export const AddFilterModal: React.FC<AddFilterModalProps> = ({
                     type="text"
                     value={name}
                     onChange={(e) => setName(e.target.value)}
-                    className="w-full px-2.5 py-1.5 border border-[#121212] text-xs font-bold"
+                    className="w-full px-2.5 py-1.5 border border-[#3F4657] bg-[#151820] text-[#E8E0D0] text-xs font-bold rounded font-mono focus:border-[#33FF00] focus:outline-hidden"
                   />
                 </div>
 
                 <div>
-                  <label htmlFor="preview-format" className="block text-[11px] font-bold text-[#6B7280] mb-1">
+                  <label htmlFor="preview-format" className="block text-[11px] font-bold text-[#A0AAB8] mb-1 font-mono">
                     Detected Format
                   </label>
                   <select
                     id="preview-format"
                     value={format}
                     onChange={(e) => setFormat(e.target.value)}
-                    className="w-full px-2.5 py-1.5 border border-[#121212] text-xs font-bold bg-white"
+                    className="w-full px-2.5 py-1.5 border border-[#3F4657] bg-[#151820] text-[#E8E0D0] text-xs font-bold rounded font-mono focus:border-[#33FF00] focus:outline-hidden"
                   >
                     <option value="hosts">Hosts File (hosts)</option>
                     <option value="domains">Domain List (domains)</option>
@@ -237,7 +237,7 @@ export const AddFilterModal: React.FC<AddFilterModalProps> = ({
               </div>
 
               <div>
-                <label htmlFor="preview-category" className="block text-[11px] font-bold text-[#6B7280] mb-1">
+                <label htmlFor="preview-category" className="block text-[11px] font-bold text-[#A0AAB8] mb-1 font-mono">
                   Category
                 </label>
                 <input
@@ -245,12 +245,12 @@ export const AddFilterModal: React.FC<AddFilterModalProps> = ({
                   type="text"
                   value={category}
                   onChange={(e) => setCategory(e.target.value)}
-                  className="w-full px-2.5 py-1.5 border border-[#121212] text-xs"
+                  className="w-full px-2.5 py-1.5 border border-[#3F4657] bg-[#151820] text-[#E8E0D0] text-xs rounded font-mono focus:border-[#33FF00] focus:outline-hidden"
                 />
               </div>
 
               <div>
-                <label htmlFor="preview-description" className="block text-[11px] font-bold text-[#6B7280] mb-1">
+                <label htmlFor="preview-description" className="block text-[11px] font-bold text-[#A0AAB8] mb-1 font-mono">
                   Description
                 </label>
                 <textarea
@@ -258,17 +258,17 @@ export const AddFilterModal: React.FC<AddFilterModalProps> = ({
                   rows={2}
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
-                  className="w-full px-2.5 py-1.5 border border-[#121212] text-xs resize-none"
+                  className="w-full px-2.5 py-1.5 border border-[#3F4657] bg-[#151820] text-[#E8E0D0] text-xs resize-none rounded font-mono focus:border-[#33FF00] focus:outline-hidden"
                 />
               </div>
 
-              <div className="text-[11px] text-[#6B7280] flex items-center justify-between pt-1 border-t border-[#EBE7DE]">
+              <div className="text-[11px] text-[#A0AAB8] flex items-center justify-between pt-1 border-t border-[#3F4657] font-mono">
                 <span>
-                  <strong>Candidate Rule Count:</strong> ~{preview.ruleCount.toLocaleString()} domains
+                  <strong className="text-[#D2B48C]">Candidate Rule Count:</strong> ~{preview.ruleCount.toLocaleString()} domains
                 </span>
                 {preview.homepage && (
                   <span className="truncate max-w-[200px]">
-                    <strong>Source:</strong> {preview.homepage}
+                    <strong className="text-[#D2B48C]">Source:</strong> {preview.homepage}
                   </span>
                 )}
               </div>
@@ -276,18 +276,18 @@ export const AddFilterModal: React.FC<AddFilterModalProps> = ({
           )}
 
           {/* Form Action Buttons */}
-          <div className="pt-2 flex items-center justify-end gap-2 border-t border-[#D1CBC0]">
+          <div className="pt-2 flex items-center justify-end gap-2 border-t border-[#3F4657]">
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 border border-[#121212] bg-[#F5F1E8] hover:bg-white text-xs font-bold text-[#121212]"
+              className="px-4 py-2 border border-[#3F4657] bg-[#151820] hover:border-[#D2B48C] text-xs font-mono font-bold text-[#D2B48C] rounded cursor-pointer"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={isSubmitting || !name.trim() || preview?.isAlreadySubscribed}
-              className="px-5 py-2 bg-[#121212] text-[#F5F1E8] neo-border text-xs font-bold hover:bg-[#2C2C2C] disabled:opacity-50 transition-all flex items-center gap-1.5"
+              className="px-5 py-2 bg-[#33FF00] text-[#14161E] rounded-lg text-xs font-mono font-bold hover:brightness-110 active:translate-y-[1px] disabled:opacity-50 transition-all flex items-center gap-1.5 cursor-pointer"
             >
               {isSubmitting ? (
                 <>
